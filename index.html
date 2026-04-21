@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="ZIPPit"/>
+  <title>ZIPPit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Chart.js — needed from Step 8 onwards, included now so we never forget -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- Single entry point — app.js imports everything else -->
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SPLASH
+════════════════════════════════════════════════════════════ -->
+<div id="splash">
+  <div class="splash-logo">Z</div>
+  <div class="splash-name">ZIPPit</div>
+  <div class="splash-sub">Business Manager</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN
+════════════════════════════════════════════════════════════ -->
+<div id="login">
+  <div class="login-logo">
+    <span id="login-logo-text" style="font-size:26px;font-weight:800;color:#fff">Z</span>
+    <img id="login-logo-img" src="" style="display:none;width:100%;height:100%;object-fit:cover"/>
+  </div>
+  <div class="login-title">ZIPPit</div>
+  <div class="login-sub">Sign in to continue</div>
+
+  <div class="login-card">
+    <div class="login-steps">
+      <div class="login-step on" id="ls1"></div>
+      <div class="login-step"    id="ls2"></div>
+    </div>
+
+    <!-- Step 1: pick user -->
+    <div id="step-user">
+      <div class="section-label">Who are you?</div>
+      <div class="user-grid" id="user-grid">
+        <div class="skel" style="height:90px;border-radius:16px"></div>
+        <div class="skel" style="height:90px;border-radius:16px"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: enter PIN -->
+    <div id="step-pin" style="display:none">
+      <div class="pin-name" id="pin-for">Enter your PIN</div>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="numpad" id="numpad"></div>
+      <button class="go-btn" id="go-btn" onclick="checkPin()">GO &rarr;</button>
+      <div class="pin-err" id="pin-err"></div>
+      <div class="back-link" onclick="goStep1()">&larr; Change user</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST
+════════════════════════════════════════════════════════════ -->
+<div class="toast" id="toast">
+  <span id="toast-msg"></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CONFIRM DIALOG
+════════════════════════════════════════════════════════════ -->
+<div class="confirm-modal" id="confirm-modal">
+  <div class="confirm-box">
+    <div class="confirm-icon">&#9888;&#65039;</div>
+    <div class="confirm-title" id="confirm-title">Are you sure?</div>
+    <div class="confirm-msg"   id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="btn-secondary" style="flex:1" onclick="window._confirmCancel()">Cancel</button>
+      <button class="btn-danger"    style="flex:1" onclick="window._confirmOk()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── Topbar ── -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-logo">
+        <span id="tb-logo-text" style="font-size:13px;font-weight:800;color:#fff">Z</span>
+        <img  id="tb-logo-img"  src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px"/>
+      </div>
+      <span class="tb-title" id="tb-title">Dashboard</span>
+    </div>
+    <div class="tb-right">
+      <div class="chip">
+        <div class="chip-av" id="chip-av">A</div>
+        <span id="chip-name">User</span>
+      </div>
+      <button class="icon-btn" id="theme-btn" onclick="toggleTheme()">&#9728;&#65039;</button>
+    </div>
+  </div>
+
+  <!-- ── Page content ── -->
+  <div class="content">
+
+    <!-- DASHBOARD (placeholder — rendered in Step 8) -->
+    <div class="page on" id="pg-dashboard">
+      <div class="month-picker">
+        <select id="dash-month" onchange="window.renderDashboard?.()"></select>
+        <select id="dash-year"  onchange="window.renderDashboard?.()"></select>
+      </div>
+      <div class="stat-grid">
+        <div class="stat accent"><div class="stat-val" id="d-rev">&#8377;0</div><div class="stat-label">Revenue</div></div>
+        <div class="stat green" ><div class="stat-val" id="d-gp">&#8377;0</div><div class="stat-label">Gross Profit</div></div>
+        <div class="stat amber" ><div class="stat-val" id="d-np">&#8377;0</div><div class="stat-label">Net Profit</div></div>
+        <div class="stat red"   ><div class="stat-val" id="d-pend">&#8377;0</div><div class="stat-label">Pending</div></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-val" id="d-exp" style="color:var(--red)">&#8377;0</div><div class="stat-label">Expenses</div></div>
+        <div class="stat"><div class="stat-val" id="d-sales">0</div><div class="stat-label">Sales</div></div>
+      </div>
+      <div id="dash-label-alerts"></div>
+      <div class="chips" id="trend-chips">
+        <span class="chip-f"    data-t="day">Today</span>
+        <span class="chip-f on" data-t="week">This Week</span>
+        <span class="chip-f"    data-t="month">Month</span>
+        <span class="chip-f"    data-t="year">Year</span>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="chart-box"><canvas id="chart-dash"></canvas></div>
+      </div>
+      <div class="sec-hdr">
+        <span class="sec-title">Top Clients</span>
+        <button class="btn-sm" onclick="showPage('clients')">All</button>
+      </div>
+      <div class="card" id="dash-clients">
+        <div class="empty" style="padding:20px">
+          <div class="empty-text">No data yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY (Step 3) -->
+    <div class="page" id="pg-inventory">
+      <div class="chips" id="inv-chips">
+        <span class="chip-f on" data-f="active">Active</span>
+        <span class="chip-f"    data-f="soldout">Sold Out</span>
+        <span class="chip-f"    data-f="all">All</span>
+      </div>
+      <div class="stat-grid" id="inv-summary-stats">
+        <div class="stat"><div class="stat-val" id="inv-batch-count">0</div><div class="stat-label">Batches</div></div>
+        <div class="stat green"><div class="stat-val" id="inv-pack-count">0</div><div class="stat-label">Packs in Stock</div></div>
+      </div>
+      <div id="inv-cat-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div class="sec-hdr"><span class="sec-title">Batches</span></div>
+      <div id="inv-list">
+        <div class="empty"><div class="empty-icon">&#128230;</div><div class="empty-text">No batches yet</div><div class="empty-sub">Tap + to add your first batch</div></div>
+      </div>
+    </div>
+
+    <!-- CLIENTS (Step 4) -->
+    <div class="page" id="pg-clients">
+      <div class="chips" id="cli-chips">
+        <span class="chip-f on" data-f="all">All</span>
+        <span class="chip-f"    data-f="pending">Pending</span>
+      </div>
+      <div class="sec-hdr">
+        <span class="sec-title" id="cli-count">Clients</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="cli-sort" class="form-select" style="padding:6px 10px;font-size:12px;width:auto" onchange="window.renderClients?.()">
+            <option value="recent">Recent</option>
+            <option value="alpha">A–Z</option>
+          </select>
+          <input id="cli-search" class="form-input" placeholder="Search..."
+            style="width:110px;padding:7px 12px;font-size:13px"
+            oninput="window.renderClients?.()"/>
+        </div>
+      </div>
+      <div id="cli-list">
+        <div class="empty"><div class="empty-icon">&#128101;</div><div class="empty-text">No clients yet</div><div class="empty-sub">Tap + to add your first client</div></div>
+      </div>
+    </div>
+
+    <!-- SALES (Step 6) -->
+    <div class="page" id="pg-sales">
+      <div class="chips" id="sale-chips">
+        <span class="chip-f on" data-s="">All</span>
+        <span class="chip-f"    data-s="paid">Paid</span>
+        <span class="chip-f"    data-s="partial">Partial</span>
+        <span class="chip-f"    data-s="pending">Pending</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat accent"><div class="stat-val" id="sale-rev">&#8377;0</div><div class="stat-label">Revenue</div></div>
+        <div class="stat"><div class="stat-val" id="sale-pend" style="color:var(--amber)">&#8377;0</div><div class="stat-label">Pending</div></div>
+      </div>
+      <div class="sec-hdr"><span class="sec-title" id="sale-count">Sales</span></div>
+      <div id="sale-list">
+        <div class="empty"><div class="empty-icon">&#129534;</div><div class="empty-text">No sales yet</div><div class="empty-sub">Tap + to record a sale</div></div>
+      </div>
+    </div>
+
+    <!-- LABELS (Step 5) -->
+    <div class="page" id="pg-labels">
+      <div class="chips" id="lbl-chips">
+        <span class="chip-f on" data-s="alpha">A–Z</span>
+        <span class="chip-f"    data-s="low">Low &rarr; High</span>
+        <span class="chip-f"    data-s="high">High &rarr; Low</span>
+      </div>
+      <div id="lbl-list">
+        <div class="empty"><div class="empty-icon">&#127991;</div><div class="empty-text">No clients yet</div><div class="empty-sub">Add clients first to manage labels</div></div>
+      </div>
+    </div>
+
+    <!-- MORE -->
+    <div class="page" id="pg-more">
+      <div class="card" style="padding:0 16px">
+        <div class="menu-item" onclick="showPage('payments')" id="menu-pay">
+          <div class="menu-icon" style="background:var(--amber-d)">&#128179;</div>
+          <div><div class="menu-label">Pending Payments</div><div class="menu-sub">Collect dues from clients</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+        <div class="menu-item" onclick="showPage('expenses')" id="menu-exp">
+          <div class="menu-icon" style="background:var(--red-d)">&#128184;</div>
+          <div><div class="menu-label">Expenses</div><div class="menu-sub">All business costs</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+        <div class="menu-item" onclick="showPage('profit')" id="menu-profit">
+          <div class="menu-icon" style="background:var(--green-d)">&#128202;</div>
+          <div><div class="menu-label">Profit Report</div><div class="menu-sub">Revenue vs profit breakdown</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr"><span class="sec-title">Owner Tools</span></div>
+      <div class="card" style="padding:0 16px" id="owner-tools">
+        <div class="menu-item" onclick="window.openSettingsModal?.()">
+          <div class="menu-icon" style="background:var(--accent-d)">&#9881;&#65039;</div>
+          <div><div class="menu-label">Settings</div><div class="menu-sub">Pack types, label sheets, categories</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+        <div class="menu-item" onclick="openUsersModal()">
+          <div class="menu-icon" style="background:var(--blue-d)">&#128101;</div>
+          <div><div class="menu-label">Users &amp; PINs</div><div class="menu-sub">Manage team access</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+        <div class="menu-item" onclick="window.openAuditModal?.()">
+          <div class="menu-icon" style="background:var(--accent-d)">&#128203;</div>
+          <div><div class="menu-label">Audit Log</div><div class="menu-sub">Full change history</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+        <div class="menu-item" onclick="openLogoModal()">
+          <div class="menu-icon" style="background:var(--green-d)">&#128444;&#65039;</div>
+          <div><div class="menu-label">App Logo</div><div class="menu-sub">Upload custom logo</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr"><span class="sec-title">Session</span></div>
+      <div class="card" style="padding:0 16px">
+        <div class="menu-item" onclick="logout()">
+          <div class="menu-icon" style="background:var(--red-d)">&#128682;</div>
+          <div>
+            <div class="menu-label" style="color:var(--red)">Logout</div>
+            <div class="menu-sub" id="logout-sub">Logged in as &mdash;</div>
+          </div>
+        </div>
+      </div>
+      <div class="version">ZIPPit v3.0 &middot; Step 1</div>
+    </div>
+
+    <!-- PAYMENTS (Step 7) -->
+    <div class="page" id="pg-payments">
+      <div class="stat-grid">
+        <div class="stat red"><div class="stat-val" id="pay-grand">&#8377;0</div><div class="stat-label">Outstanding</div></div>
+        <div class="stat"><div class="stat-val" id="pay-count">0</div><div class="stat-label">Clients with Due</div></div>
+      </div>
+      <div class="sec-hdr"><span class="sec-title">Pending by Client</span></div>
+      <div id="pay-list">
+        <div class="empty"><div class="empty-icon">&#9989;</div><div class="empty-text">All cleared!</div></div>
+      </div>
+    </div>
+
+    <!-- EXPENSES (Step 8) -->
+    <div class="page" id="pg-expenses">
+      <div class="chips" id="exp-period-chips">
+        <span class="chip-f on" data-p="month">This Month</span>
+        <span class="chip-f"    data-p="year">This Year</span>
+        <span class="chip-f"    data-p="all">All Time</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat red"><div class="stat-val" id="exp-total">&#8377;0</div><div class="stat-label" id="exp-period-label">This Month</div></div>
+        <div class="stat"><div class="stat-val" id="exp-count">0</div><div class="stat-label">Expenses</div></div>
+      </div>
+      <div class="card" style="padding:12px"><div class="chart-box"><canvas id="chart-exp"></canvas></div></div>
+      <div class="sec-hdr"><span class="sec-title">List</span></div>
+      <div id="exp-list">
+        <div class="empty"><div class="empty-icon">&#128184;</div><div class="empty-text">No expenses yet</div></div>
+      </div>
+    </div>
+
+    <!-- PROFIT REPORT (Step 8) -->
+    <div class="page" id="pg-profit">
+      <div class="chips" id="pr-period-chips">
+        <span class="chip-f"    data-p="week">Week</span>
+        <span class="chip-f on" data-p="month">Month</span>
+        <span class="chip-f"    data-p="year">Year</span>
+        <span class="chip-f"    data-p="all">All Time</span>
+      </div>
+      <div class="chips" id="pr-group-chips">
+        <span class="chip-f on" data-g="client">By Client</span>
+        <span class="chip-f"    data-g="category">By Pack Category</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat accent"><div class="stat-val" id="pr-rev">&#8377;0</div><div class="stat-label">Revenue</div></div>
+        <div class="stat green" ><div class="stat-val" id="pr-gp">&#8377;0</div><div class="stat-label">Gross Profit</div></div>
+        <div class="stat amber" ><div class="stat-val" id="pr-np">&#8377;0</div><div class="stat-label">Net Profit</div></div>
+        <div class="stat"       ><div class="stat-val" id="pr-margin">0%</div><div class="stat-label">Margin</div></div>
+      </div>
+      <div class="card" style="padding:12px"><div class="chart-box"><canvas id="chart-profit"></canvas></div></div>
+      <div id="profit-list"></div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- ── Bottom Navigation (6 tabs) ── -->
+  <nav class="bnav">
+    <button class="bnav-item on" data-p="dashboard" onclick="showPage('dashboard')">
+      <span class="bnav-icon">&#127968;</span><span>Home</span>
+    </button>
+    <button class="bnav-item" data-p="inventory" onclick="showPage('inventory')">
+      <span class="bnav-icon">&#128230;</span><span>Stock</span>
+    </button>
+    <button class="bnav-item" data-p="clients" onclick="showPage('clients')">
+      <span class="bnav-icon">&#128101;</span><span>Clients</span>
+    </button>
+    <button class="bnav-item" data-p="sales" onclick="showPage('sales')">
+      <span class="bnav-icon">&#129534;</span><span>Sales</span>
+      <div class="bnav-dot" id="sale-dot"></div>
+    </button>
+    <button class="bnav-item" data-p="labels" onclick="showPage('labels')">
+      <span class="bnav-icon">&#127991;</span><span>Labels</span>
+    </button>
+    <button class="bnav-item" data-p="more" onclick="showPage('more')">
+      <span class="bnav-icon">&#9776;</span><span>More</span>
+    </button>
+  </nav>
+
+  <button class="fab hide" id="fab" onclick="openAddModal()">&#65291;</button>
+
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS — all modals live here, activated by JS
+════════════════════════════════════════════════════════════ -->
+
+<!-- USERS MODAL -->
+<div class="modal-bg" id="modal-users">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Users &amp; PINs</div>
+      <button class="modal-close" onclick="document.getElementById('modal-users').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="users-list" style="margin-bottom:16px"></div>
+      <div class="divider"></div>
+      <div class="sec-title" style="margin-bottom:12px">Add New User</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" id="nu-name" placeholder="Full name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Initials</label>
+          <input class="form-input" id="nu-init" placeholder="AB" maxlength="2"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-select" id="nu-role">
+            <option value="owner">Owner</option>
+            <option value="partner">Partner</option>
+            <option value="staff" selected>Staff</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">4-Digit PIN</label>
+          <input class="form-input" type="password" id="nu-pin" maxlength="4" placeholder="****" inputmode="numeric"/>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="addUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGO MODAL -->
+<div class="modal-bg" id="modal-logo">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">App Logo</div>
+      <button class="modal-close" onclick="document.getElementById('modal-logo').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:20px">
+        <div style="width:80px;height:80px;border-radius:22px;background:var(--accent);display:flex;align-items:center;justify-content:center;overflow:hidden">
+          <span id="logo-prev-text" style="font-size:34px;font-weight:800;color:#fff">Z</span>
+          <img  id="logo-prev-img"  src="" style="display:none;width:100%;height:100%;object-fit:cover"/>
+        </div>
+        <div style="font-size:13px;color:var(--text2);text-align:center">Shown on login &amp; topbar. Stored on this device.</div>
+      </div>
+      <input type="file" id="logo-file" accept="image/*" style="display:none" onchange="previewLogo(event)"/>
+      <button class="btn-secondary" style="width:100%;margin-bottom:10px" onclick="document.getElementById('logo-file').click()">Choose Image</button>
+      <button class="btn-primary" onclick="saveLogo()">Save Logo</button>
+      <button class="btn-danger"  style="width:100%;margin-top:8px" onclick="removeLogo()">Remove Logo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Stub modals — filled in by later steps ─── -->
+<!-- Settings modal (Step 2) -->
+<div class="modal-bg" id="modal-settings">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Settings</div>
+      <button class="modal-close" onclick="document.getElementById('modal-settings').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="settings-body">
+      <div class="empty"><div class="empty-text">Settings — coming in Step 2</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Batch modal (Step 3) -->
+<div class="modal-bg" id="modal-batch">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">New Batch</div>
+      <button class="modal-close" onclick="document.getElementById('modal-batch').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="batch-body">
+      <div class="empty"><div class="empty-text">Batch form — coming in Step 3</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Batch detail modal (Step 3) -->
+<div class="modal-bg" id="modal-batch-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="bd-title">Batch Details</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px" id="bd-sub"></div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-batch-detail').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="bd-body"></div>
+  </div>
+</div>
+
+<!-- Batch wastage modal (Step 3) -->
+<div class="modal-bg" id="modal-wastage">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Mark Pack Wastage</div>
+      <button class="modal-close" onclick="document.getElementById('modal-wastage').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Pack Type</label>
+        <select class="form-select" id="w-cat"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity Wasted</label>
+        <input class="form-input" type="number" inputmode="numeric" id="w-qty" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason (required)</label>
+        <input class="form-input" id="w-note" placeholder="e.g. Damaged in storage"/>
+      </div>
+      <button class="btn-primary" onclick="window.submitBatchWastage?.()">Record Wastage</button>
+    </div>
+  </div>
+</div>
+
+<!-- Client modal (Step 4) -->
+<div class="modal-bg" id="modal-client">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="cli-modal-title">New Client</div>
+      <button class="modal-close" onclick="document.getElementById('modal-client').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="client-body">
+      <div class="empty"><div class="empty-text">Client form — coming in Step 4</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Client detail modal (Step 4) -->
+<div class="modal-bg" id="modal-cli-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="li-av" id="cdet-av" style="width:42px;height:42px;border-radius:13px;font-size:15px">?</div>
+        <div>
+          <div class="modal-title" id="cdet-name">Client</div>
+          <div style="font-size:12px;color:var(--text2)" id="cdet-sub"></div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-cli-detail').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="cdet-body"></div>
+  </div>
+</div>
+
+<!-- Label detail modal (Step 5) -->
+<div class="modal-bg" id="modal-label-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="lbl-detail-name">Labels</div>
+      <button class="modal-close" onclick="document.getElementById('modal-label-detail').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="lbl-detail-body"></div>
+  </div>
+</div>
+
+<!-- Add label sheets modal (Step 5) -->
+<div class="modal-bg" id="modal-add-sheets">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Add Label Sheets</div>
+        <div style="font-size:12px;color:var(--text2)"    id="sheet-client-name"></div>
+        <div style="font-size:11px;color:var(--accent)"   id="sheet-cat-name"></div>
+        <div style="font-size:11px;color:var(--text3)"    id="sheet-info"></div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-add-sheets').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Number of Sheets</label>
+        <input class="form-input" type="number" inputmode="numeric" id="add-sheet-count" placeholder="e.g. 10"/>
+      </div>
+      <button class="btn-primary" onclick="window.submitAddSheets?.()">Add Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- Label wastage modal (Step 5) -->
+<div class="modal-bg" id="modal-label-wastage">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Label Wastage</div>
+        <div style="font-size:12px;color:var(--text2)" id="lw-client-name"></div>
+        <div style="font-size:11px;color:var(--accent)" id="lw-cat-name"></div>
+        <div style="font-size:11px;color:var(--amber)"  id="lw-remaining"></div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-label-wastage').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Labels Wasted</label>
+        <input class="form-input" type="number" inputmode="numeric" id="lw-qty" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason (required)</label>
+        <input class="form-input" id="lw-note" placeholder="e.g. Printing error"/>
+      </div>
+      <button class="btn-primary" onclick="window.submitLabelWastage?.()">Record Wastage</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sale modal (Step 6) -->
+<div class="modal-bg" id="modal-sale">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">New Sale</div>
+      <button class="modal-close" onclick="document.getElementById('modal-sale').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="sale-body">
+      <div class="empty"><div class="empty-text">Sale form — coming in Step 6</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sale detail modal (Step 6) -->
+<div class="modal-bg" id="modal-sale-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Sale Details</div>
+      <button class="modal-close" onclick="document.getElementById('modal-sale-detail').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="sale-detail-body"></div>
+  </div>
+</div>
+
+<!-- Collect payment modal (Step 7) -->
+<div class="modal-bg" id="modal-payment">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="pay-modal-title">Collect Payment</div>
+      <button class="modal-close" onclick="document.getElementById('modal-payment').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r12);padding:12px;margin-bottom:14px">
+        <div class="info-row"><span class="info-label">Total Outstanding</span><span class="info-val" style="color:var(--red)" id="pay-outstanding">&#8377;0</span></div>
+        <div class="info-row" style="border:none"><span class="info-label">Orders pending</span><span class="info-val" id="pay-order-count">0</span></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount Received (&#8377;)</label>
+          <input class="form-input" type="number" inputmode="numeric" id="pay-amt"
+            placeholder="0" min="0" oninput="window.previewPayment?.()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Date</label>
+          <input class="form-input" type="date" id="pay-date"/>
+        </div>
+      </div>
+      <div id="pay-preview-wrap" style="display:none">
+        <div class="sec-title" style="margin-bottom:8px">Distribution (oldest first)</div>
+        <div style="border:1px solid var(--border);border-radius:var(--r12);padding:4px 12px;margin-bottom:10px" id="pay-preview-rows"></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px">
+          <span style="color:var(--text2)">Still pending after this</span>
+          <span style="font-weight:800;color:var(--red)" id="pay-still">&#8377;0</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <input class="form-input" id="pay-notes" placeholder="Cash / UPI reference..."/>
+      </div>
+      <button class="btn-primary" id="pay-submit-btn" onclick="window.submitPayment?.()">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense modal (Step 8) -->
+<div class="modal-bg" id="modal-expense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="exp-modal-title">New Expense</div>
+      <button class="modal-close" onclick="document.getElementById('modal-expense').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" type="date" id="e-date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (&#8377;)</label>
+          <input class="form-input" type="number" inputmode="numeric" id="e-amount" placeholder="0"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="e-cat"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <input class="form-input" id="e-reason" placeholder="What was this for?"/>
+      </div>
+      <button class="btn-primary" onclick="window.submitExpense?.()">Save Expense</button>
+      <button class="btn-danger" id="exp-delete-btn" style="width:100%;margin-top:8px;display:none" onclick="window.deleteExpense?.()">Delete Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- Audit log modal (Step 9) -->
+<div class="modal-bg" id="modal-audit">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Audit Log</div>
+      <button class="modal-close" onclick="document.getElementById('modal-audit').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="audit-list">
+      <div class="empty"><div class="empty-text">Audit log — coming in Step 9</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
