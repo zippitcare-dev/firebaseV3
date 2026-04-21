@@ -281,7 +281,7 @@
           </div>
         </div>
       </div>
-      <div class="version">ZIPPit v3.0 &middot; Step 1</div>
+      <div class="version">ZIPPit v3.0 &middot; Step 2</div>
     </div>
 
     <!-- PAYMENTS (Step 7) -->
@@ -444,7 +444,79 @@
       <button class="modal-close" onclick="document.getElementById('modal-settings').classList.remove('show')">&#10005;</button>
     </div>
     <div class="modal-body" id="settings-body">
-      <div class="empty"><div class="empty-text">Settings — coming in Step 2</div></div>
+
+      <!-- Low Label Alert Threshold -->
+      <div class="form-group">
+        <label class="form-label">Low Labels Alert (packs ready threshold)</label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" type="number" inputmode="numeric"
+            id="low-label-threshold" placeholder="5" style="flex:1"/>
+          <button class="btn-sm" style="height:48px;padding:0 18px;font-size:13px"
+            onclick="saveLowLabelThreshold()">Save</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">
+          Alert shows on dashboard when any client has &le; this many packs ready
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Pack Categories -->
+      <div class="form-group">
+        <label class="form-label">Pack Categories</label>
+        <div id="s-pack-list" style="margin-bottom:10px"></div>
+        <div class="form-row" style="margin-bottom:8px">
+          <input class="form-input" id="new-pack-model" placeholder="Model (e.g. Square)"/>
+          <input class="form-input" id="new-pack-size"  placeholder="Size (e.g. 1L)"/>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" type="number" inputmode="numeric"
+            id="new-pack-bottles" placeholder="Bottles per pack" style="flex:1"/>
+          <button class="btn-sm" style="height:48px;padding:0 18px;font-size:13px"
+            onclick="sAddPack()">Add</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Label Sheets -->
+      <div class="form-group">
+        <label class="form-label">Label Sheets</label>
+        <div id="s-sheet-list" style="margin-bottom:10px"></div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="new-sheet-cat"></select>
+        </div>
+        <div class="form-row" style="margin-bottom:8px">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Labels / Sheet</label>
+            <input class="form-input" type="number" inputmode="numeric"
+              id="new-sheet-labels" placeholder="e.g. 24"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Price / Sheet (&#8377;)</label>
+            <input class="form-input" type="number" inputmode="numeric"
+              id="new-sheet-price" placeholder="25" value="25"/>
+          </div>
+        </div>
+        <button class="btn-sm" style="width:100%;padding:11px;font-size:13px"
+          onclick="sAddSheet()">Add / Update Sheet</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Expense Categories -->
+      <div class="form-group">
+        <label class="form-label">Expense Categories</label>
+        <div id="s-expcat-list" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="new-expcat"
+            placeholder="e.g. Marketing" style="flex:1"/>
+          <button class="btn-sm" style="height:48px;padding:0 18px;font-size:13px"
+            onclick="sAddExpCat()">Add</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

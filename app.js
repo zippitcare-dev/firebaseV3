@@ -3,6 +3,8 @@ import { DB, objToArr, colorFor, initials } from './firebase.js';
 import { STATE } from './state.js';
 import { toast, showConfirm, openModal, closeModal, initBackdropClose } from './ui.js';
 import { loadUsers, buildNumpad, checkPin, goStep1, openUsersModal, addUser } from './users.js';
+import { openSettingsModal, sAddPack, sRemovePack, sAddSheet, sRemoveSheet,
+         sAddExpCat, sRemoveExpCat, saveLowLabelThreshold } from './settings.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -21,6 +23,13 @@ window.previewLogo   = previewLogo;
 // Confirm dialog buttons
 window._confirmOk     = () => window._confirmResolve?.(true);
 window._confirmCancel = () => window._confirmResolve?.(false);
+
+// Settings
+window.openSettingsModal     = openSettingsModal;
+window.sAddPack              = sAddPack;
+window.sAddSheet             = sAddSheet;
+window.sAddExpCat            = sAddExpCat;
+window.saveLowLabelThreshold = saveLowLabelThreshold;
 
 // ── THEME ─────────────────────────────────────────────────────
 let _isLight = false;
