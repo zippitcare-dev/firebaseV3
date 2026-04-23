@@ -12,6 +12,9 @@ import { renderClients, openClientModal, submitClient, openClientDetail,
          submitPriceUpdate, deleteClient } from './clients.js';
 import { renderLabels, openLabelDetail, openAddSheetModal, submitAddSheets,
          openLabelWastageModal, submitLabelWastage } from './labels.js';
+import { renderSales, openSaleModal, submitSale, openSaleDetail,
+         openUpdatePayment, deleteSale, updateSaleDot,
+         _loadSaleRows, _calcSaleTotal, _togglePaidField } from './sales.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -40,6 +43,16 @@ window.submitClient      = submitClient;
 window.openClientDetail  = openClientDetail;
 window.submitPriceUpdate = submitPriceUpdate;
 window.deleteClient      = deleteClient;
+
+// Sales
+window.openSaleModal      = openSaleModal;
+window.submitSale         = submitSale;
+window.openSaleDetail     = openSaleDetail;
+window.openUpdatePayment  = openUpdatePayment;
+window.deleteSale         = deleteSale;
+window._loadSaleRows      = _loadSaleRows;
+window._calcSaleTotal     = _calcSaleTotal;
+window._togglePaidField   = _togglePaidField;
 
 // Labels
 window.openLabelDetail       = openLabelDetail;
@@ -177,6 +190,7 @@ function showPage(name) {
   if (name === 'inventory') renderInventory();
   if (name === 'clients')   renderClients();
   if (name === 'labels')    renderLabels();
+  if (name === 'sales')     renderSales();
 }
 
 function openAddModal() {
@@ -184,7 +198,7 @@ function openAddModal() {
   const handlers = {
     inventory: () => window.openBatchModal?.(),
     clients:   () => openClientModal(),
-    sales:     () => window.openSaleModal?.(),
+    sales:     () => openSaleModal(),
     expenses:  () => window.openExpModal?.(),
   };
   handlers[_currentPage]?.();
@@ -286,6 +300,8 @@ window.addEventListener('zp:login', async e => {
 
   // Load all data then render dashboard
   await loadAll();
+
+  updateSaleDot();
 
   // Render dashboard if the function exists (added in step 8)
   if (typeof renderDashboard === 'function') renderDashboard();
