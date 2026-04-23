@@ -5,6 +5,9 @@ import { toast, showConfirm, openModal, closeModal, initBackdropClose } from './
 import { loadUsers, buildNumpad, checkPin, goStep1, openUsersModal, addUser } from './users.js';
 import { openSettingsModal, sAddPack, sRemovePack, sAddSheet, sRemoveSheet,
          sAddExpCat, sRemoveExpCat, saveLowLabelThreshold } from './settings.js';
+import { renderInventory, openBatchModal, submitBatch, openBatchDetail,
+         toggleSoldOut, deleteBatch, openBatchWastageModal,
+         submitBatchWastage, _updateBatchPreview } from './batches.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -26,6 +29,16 @@ window._confirmCancel = () => window._confirmResolve?.(false);
 
 // Settings
 window.openSettingsModal     = openSettingsModal;
+
+// Batches
+window.openBatchModal        = openBatchModal;
+window.submitBatch           = submitBatch;
+window.openBatchDetail       = openBatchDetail;
+window.toggleSoldOut         = toggleSoldOut;
+window.deleteBatch           = deleteBatch;
+window.openBatchWastageModal = openBatchWastageModal;
+window.submitBatchWastage    = submitBatchWastage;
+window._updateBatchPreview   = _updateBatchPreview;
 window.sAddPack              = sAddPack;
 window.sAddSheet             = sAddSheet;
 window.sAddExpCat            = sAddExpCat;
@@ -143,6 +156,7 @@ function showPage(name) {
   // Render page — these functions will be added in later steps
   // For now only dashboard exists
   if (name === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+  if (name === 'inventory') renderInventory();
 }
 
 function openAddModal() {
@@ -272,6 +286,7 @@ window.addEventListener('zp:data-changed', async () => {
     expenses:  'renderExpenses',
     profit:    'renderProfit',
   };
+  // reload batches specifically before rendering inventory
   const fn = window[renders[_currentPage]];
   if (typeof fn === 'function') fn();
 });

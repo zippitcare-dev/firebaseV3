@@ -281,7 +281,7 @@
           </div>
         </div>
       </div>
-      <div class="version">ZIPPit v3.0 &middot; Step 2</div>
+      <div class="version">ZIPPit v3.0 &middot; Step 3</div>
     </div>
 
     <!-- PAYMENTS (Step 7) -->
@@ -529,8 +529,31 @@
       <div class="modal-title">New Batch</div>
       <button class="modal-close" onclick="document.getElementById('modal-batch').classList.remove('show')">&#10005;</button>
     </div>
-    <div class="modal-body" id="batch-body">
-      <div class="empty"><div class="empty-text">Batch form — coming in Step 3</div></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Batch No.</label>
+          <input class="form-input" id="b-no" placeholder="e.g. B-001"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Purchase Date</label>
+          <input class="form-input" type="date" id="b-date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Delivery Charge (&#8377;)</label>
+        <input class="form-input" type="number" inputmode="numeric" id="b-delivery"
+          placeholder="0" oninput="window._updateBatchPreview()"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <input class="form-input" id="b-notes" placeholder="Any remarks..."/>
+      </div>
+      <div class="sec-hdr" style="margin-top:4px">
+        <span class="sec-title">Pack Types in this Batch</span>
+      </div>
+      <div id="batch-item-rows"></div>
+      <button class="btn-primary" style="margin-top:8px" onclick="submitBatch()">Save Batch</button>
     </div>
   </div>
 </div>
