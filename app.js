@@ -16,6 +16,9 @@ import { renderSales, openSaleModal, submitSale, openSaleDetail,
          openUpdatePayment, deleteSale, updateSaleDot,
          _loadSaleRows, _calcSaleTotal, _togglePaidField } from './sales.js';
 import { renderPayments, openPayModal, previewPayment, submitPayment } from './payments.js';
+import { renderExpenses, openExpModal, submitExpense, deleteExpense } from './expenses.js';
+import { renderProfit } from './profit.js';
+import { renderDashboard } from './dashboard.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -44,6 +47,12 @@ window.submitClient      = submitClient;
 window.openClientDetail  = openClientDetail;
 window.submitPriceUpdate = submitPriceUpdate;
 window.deleteClient      = deleteClient;
+
+// Expenses
+window.openExpModal  = openExpModal;
+window.submitExpense = submitExpense;
+window.deleteExpense = deleteExpense;
+window.openEditExp   = (id) => openExpModal(id);
 
 // Payments
 window.openPayModal   = openPayModal;
@@ -192,12 +201,14 @@ function showPage(name) {
 
   // Render page — these functions will be added in later steps
   // For now only dashboard exists
-  if (name === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+  if (name === 'dashboard') renderDashboard();
   if (name === 'inventory') renderInventory();
   if (name === 'clients')   renderClients();
   if (name === 'labels')    renderLabels();
   if (name === 'sales')     renderSales();
   if (name === 'payments')  renderPayments();
+  if (name === 'expenses')  renderExpenses();
+  if (name === 'profit')    renderProfit();
 }
 
 function openAddModal() {
@@ -206,7 +217,7 @@ function openAddModal() {
     inventory: () => window.openBatchModal?.(),
     clients:   () => openClientModal(),
     sales:     () => openSaleModal(),
-    expenses:  () => window.openExpModal?.(),
+    expenses:  () => openExpModal(),
   };
   handlers[_currentPage]?.();
 }
@@ -310,8 +321,7 @@ window.addEventListener('zp:login', async e => {
 
   updateSaleDot();
 
-  // Render dashboard if the function exists (added in step 8)
-  if (typeof renderDashboard === 'function') renderDashboard();
+  renderDashboard();
 });
 
 // ── DATA-CHANGED EVENT ────────────────────────────────────────
