@@ -15,6 +15,7 @@ import { renderLabels, openLabelDetail, openAddSheetModal, submitAddSheets,
 import { renderSales, openSaleModal, submitSale, openSaleDetail,
          openUpdatePayment, deleteSale, updateSaleDot,
          _loadSaleRows, _calcSaleTotal, _togglePaidField } from './sales.js';
+import { renderPayments, openPayModal, previewPayment, submitPayment } from './payments.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -43,6 +44,11 @@ window.submitClient      = submitClient;
 window.openClientDetail  = openClientDetail;
 window.submitPriceUpdate = submitPriceUpdate;
 window.deleteClient      = deleteClient;
+
+// Payments
+window.openPayModal   = openPayModal;
+window.previewPayment = previewPayment;
+window.submitPayment  = submitPayment;
 
 // Sales
 window.openSaleModal      = openSaleModal;
@@ -191,6 +197,7 @@ function showPage(name) {
   if (name === 'clients')   renderClients();
   if (name === 'labels')    renderLabels();
   if (name === 'sales')     renderSales();
+  if (name === 'payments')  renderPayments();
 }
 
 function openAddModal() {
