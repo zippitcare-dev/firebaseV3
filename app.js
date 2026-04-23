@@ -10,6 +10,8 @@ import { renderInventory, openBatchModal, submitBatch, openBatchDetail,
          submitBatchWastage, _updateBatchPreview } from './batches.js';
 import { renderClients, openClientModal, submitClient, openClientDetail,
          submitPriceUpdate, deleteClient } from './clients.js';
+import { renderLabels, openLabelDetail, openAddSheetModal, submitAddSheets,
+         openLabelWastageModal, submitLabelWastage } from './labels.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -38,6 +40,13 @@ window.submitClient      = submitClient;
 window.openClientDetail  = openClientDetail;
 window.submitPriceUpdate = submitPriceUpdate;
 window.deleteClient      = deleteClient;
+
+// Labels
+window.openLabelDetail       = openLabelDetail;
+window.openAddSheetModal     = openAddSheetModal;
+window.submitAddSheets       = submitAddSheets;
+window.openLabelWastageModal = openLabelWastageModal;
+window.submitLabelWastage    = submitLabelWastage;
 
 // Batches
 window.openBatchModal        = openBatchModal;
@@ -167,6 +176,7 @@ function showPage(name) {
   if (name === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
   if (name === 'inventory') renderInventory();
   if (name === 'clients')   renderClients();
+  if (name === 'labels')    renderLabels();
 }
 
 function openAddModal() {
