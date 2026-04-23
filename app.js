@@ -8,6 +8,8 @@ import { openSettingsModal, sAddPack, sRemovePack, sAddSheet, sRemoveSheet,
 import { renderInventory, openBatchModal, submitBatch, openBatchDetail,
          toggleSoldOut, deleteBatch, openBatchWastageModal,
          submitBatchWastage, _updateBatchPreview } from './batches.js';
+import { renderClients, openClientModal, submitClient, openClientDetail,
+         submitPriceUpdate, deleteClient } from './clients.js';
 
 // ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
 window.checkPin      = checkPin;
@@ -29,6 +31,13 @@ window._confirmCancel = () => window._confirmResolve?.(false);
 
 // Settings
 window.openSettingsModal     = openSettingsModal;
+
+// Clients
+window.openClientModal   = openClientModal;
+window.submitClient      = submitClient;
+window.openClientDetail  = openClientDetail;
+window.submitPriceUpdate = submitPriceUpdate;
+window.deleteClient      = deleteClient;
 
 // Batches
 window.openBatchModal        = openBatchModal;
@@ -157,13 +166,14 @@ function showPage(name) {
   // For now only dashboard exists
   if (name === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
   if (name === 'inventory') renderInventory();
+  if (name === 'clients')   renderClients();
 }
 
 function openAddModal() {
   // Context-aware — will be filled in per step
   const handlers = {
     inventory: () => window.openBatchModal?.(),
-    clients:   () => window.openClientModal?.(),
+    clients:   () => openClientModal(),
     sales:     () => window.openSaleModal?.(),
     expenses:  () => window.openExpModal?.(),
   };
