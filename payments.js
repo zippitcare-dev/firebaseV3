@@ -187,6 +187,7 @@ export async function submitPayment() {
 
     orders.forEach(o => {
       if (rem <= 0) return;
+      if (!o.id) return; // guard empty id
       const pend    = Number(o.amountPending || 0);
       const paid    = Number(o.amountPaid    || 0);
       const paying  = Math.min(rem, pend);
@@ -203,19 +204,22 @@ export async function submitPayment() {
       updates['sales/' + o.id + '/modifiedBy']     = STATE.user.name;
     });
 
-    // Save payment record
+    // Save payment record first
     await DB.push('payments', {
       clientId, date, amount: amt, notes,
       createdAt: nowISO(), createdBy: STATE.user.name,
     });
 
-    // Apply all sale updates atomically
-    await DB.multiUpdate(updates);
+    // Apply all sale updates atomically only if there are updates
+    if (Object.keys(updates).length > 0) {
+      await DB.multiUpdate(updates);
+    }
 
     toast('Payment of ' + fmt(amt) + ' recorded!');
     closeModal('modal-payment');
     window.dispatchEvent(new CustomEvent('zp:data-changed'));
   } catch (err) {
+    console.error('Payment error:', err);
     toast('Failed: ' + err.message, true);
   } finally {
     if (btn) { btn.textContent = 'Confirm Payment'; btn.disabled = false; }
