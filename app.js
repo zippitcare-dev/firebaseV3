@@ -1,5 +1,5 @@
-// app.js — Main orchestrator
-import { DB, objToArr, colorFor, initials } from './firebase.js';
+// app.js — Main orchestrator (Step 9 — Final)
+import { DB, objToArr } from './firebase.js';
 import { STATE } from './state.js';
 import { toast, showConfirm, openModal, closeModal, initBackdropClose } from './ui.js';
 import { loadUsers, buildNumpad, checkPin, goStep1, openUsersModal, addUser } from './users.js';
@@ -19,78 +19,12 @@ import { renderPayments, openPayModal, previewPayment, submitPayment } from './p
 import { renderExpenses, openExpModal, submitExpense, deleteExpense } from './expenses.js';
 import { renderProfit } from './profit.js';
 import { renderDashboard } from './dashboard.js';
+import { openAuditModal } from './audit.js';
 
-// ── EXPOSE GLOBALS FOR HTML onclick ───────────────────────────
-window.checkPin      = checkPin;
-window.goStep1       = goStep1;
-window.addUser       = addUser;
-window.openUsersModal = openUsersModal;
-window.showPage      = showPage;
-window.openAddModal  = openAddModal;
-window.logout        = logout;
-window.toggleTheme   = toggleTheme;
-window.openLogoModal = openLogoModal;
-window.saveLogo      = saveLogo;
-window.removeLogo    = removeLogo;
-window.previewLogo   = previewLogo;
-
-// Confirm dialog buttons
 window._confirmOk     = () => window._confirmResolve?.(true);
 window._confirmCancel = () => window._confirmResolve?.(false);
 
-// Settings
-window.openSettingsModal     = openSettingsModal;
-
-// Clients
-window.openClientModal   = openClientModal;
-window.submitClient      = submitClient;
-window.openClientDetail  = openClientDetail;
-window.submitPriceUpdate = submitPriceUpdate;
-window.deleteClient      = deleteClient;
-
-// Expenses
-window.openExpModal  = openExpModal;
-window.submitExpense = submitExpense;
-window.deleteExpense = deleteExpense;
-window.openEditExp   = (id) => openExpModal(id);
-
-// Payments
-window.openPayModal   = openPayModal;
-window.previewPayment = previewPayment;
-window.submitPayment  = submitPayment;
-
-// Sales
-window.openSaleModal      = openSaleModal;
-window.submitSale         = submitSale;
-window.openSaleDetail     = openSaleDetail;
-window.openUpdatePayment  = openUpdatePayment;
-window.deleteSale         = deleteSale;
-window._loadSaleRows      = _loadSaleRows;
-window._calcSaleTotal     = _calcSaleTotal;
-window._togglePaidField   = _togglePaidField;
-
-// Labels
-window.openLabelDetail       = openLabelDetail;
-window.openAddSheetModal     = openAddSheetModal;
-window.submitAddSheets       = submitAddSheets;
-window.openLabelWastageModal = openLabelWastageModal;
-window.submitLabelWastage    = submitLabelWastage;
-
-// Batches
-window.openBatchModal        = openBatchModal;
-window.submitBatch           = submitBatch;
-window.openBatchDetail       = openBatchDetail;
-window.toggleSoldOut         = toggleSoldOut;
-window.deleteBatch           = deleteBatch;
-window.openBatchWastageModal = openBatchWastageModal;
-window.submitBatchWastage    = submitBatchWastage;
-window._updateBatchPreview   = _updateBatchPreview;
-window.sAddPack              = sAddPack;
-window.sAddSheet             = sAddSheet;
-window.sAddExpCat            = sAddExpCat;
-window.saveLowLabelThreshold = saveLowLabelThreshold;
-
-// ── THEME ─────────────────────────────────────────────────────
+// THEME
 let _isLight = false;
 function toggleTheme() {
   _isLight = !_isLight;
@@ -98,7 +32,6 @@ function toggleTheme() {
   document.getElementById('theme-btn').textContent = _isLight ? '🌙' : '☀️';
   localStorage.setItem('zp-theme', _isLight ? 'light' : 'dark');
 }
-
 function _applyTheme() {
   if (localStorage.getItem('zp-theme') === 'light') {
     _isLight = true;
@@ -108,9 +41,8 @@ function _applyTheme() {
   }
 }
 
-// ── LOGO ──────────────────────────────────────────────────────
+// LOGO
 let _pendingLogoDataUrl = null;
-
 function openLogoModal() {
   const saved = localStorage.getItem('zp-logo');
   document.getElementById('logo-prev-text').style.display = saved ? 'none'  : 'block';
@@ -118,7 +50,6 @@ function openLogoModal() {
   if (saved) document.getElementById('logo-prev-img').src = saved;
   openModal('modal-logo');
 }
-
 function previewLogo(evt) {
   const file = evt.target.files[0];
   if (!file) return;
@@ -131,7 +62,6 @@ function previewLogo(evt) {
   };
   reader.readAsDataURL(file);
 }
-
 function saveLogo() {
   if (!_pendingLogoDataUrl) { toast('Choose an image first', true); return; }
   localStorage.setItem('zp-logo', _pendingLogoDataUrl);
@@ -139,7 +69,6 @@ function saveLogo() {
   closeModal('modal-logo');
   toast('Logo saved!');
 }
-
 function removeLogo() {
   localStorage.removeItem('zp-logo');
   _pendingLogoDataUrl = null;
@@ -147,107 +76,71 @@ function removeLogo() {
   closeModal('modal-logo');
   toast('Logo removed');
 }
-
 function _applyLogo(url) {
-  // Topbar
-  const tbText = document.getElementById('tb-logo-text');
-  const tbImg  = document.getElementById('tb-logo-img');
-  if (tbText) tbText.style.display = url ? 'none'  : 'block';
-  if (tbImg)  { tbImg.style.display = url ? 'block' : 'none'; if (url) tbImg.src = url; }
-
-  // Login screen
-  const lgText = document.getElementById('login-logo-text');
-  const lgImg  = document.getElementById('login-logo-img');
-  if (lgText) lgText.style.display = url ? 'none'  : 'block';
-  if (lgImg)  { lgImg.style.display = url ? 'block' : 'none'; if (url) lgImg.src = url; }
+  [['tb-logo-text','tb-logo-img'],['login-logo-text','login-logo-img']].forEach(([tid,iid]) => {
+    const t = document.getElementById(tid);
+    const i = document.getElementById(iid);
+    if (t) t.style.display = url ? 'none'  : 'block';
+    if (i) { i.style.display = url ? 'block' : 'none'; if (url) i.src = url; }
+  });
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────
+// NAVIGATION
 const PAGE_TITLES = {
-  dashboard: 'Dashboard',
-  inventory: 'Stock',
-  clients:   'Clients',
-  sales:     'Sales',
-  labels:    'Labels',
-  more:      'More',
-  payments:  'Payments',
-  expenses:  'Expenses',
-  profit:    'Profit Report',
+  dashboard:'Dashboard', inventory:'Stock', clients:'Clients',
+  sales:'Sales', labels:'Labels', more:'More',
+  payments:'Payments', expenses:'Expenses', profit:'Profit Report',
 };
-
-// Pages where the FAB (+) button is shown
 const FAB_PAGES = new Set(['inventory','clients','sales','expenses']);
-
 let _currentPage = 'dashboard';
 
 function showPage(name) {
   _currentPage = name;
-
-  // Switch page visibility
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.getElementById('pg-' + name)?.classList.add('on');
-
-  // Update bottom nav highlight
   document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('on'));
   document.querySelector('.bnav-item[data-p="' + name + '"]')?.classList.add('on');
-
-  // Update topbar title
   const titleEl = document.getElementById('tb-title');
   if (titleEl) titleEl.textContent = PAGE_TITLES[name] || name;
-
-  // Show/hide FAB
   const fab = document.getElementById('fab');
   if (fab) fab.classList.toggle('hide', !FAB_PAGES.has(name));
-
-  // Render page — these functions will be added in later steps
-  // For now only dashboard exists
   if (name === 'dashboard') renderDashboard();
   if (name === 'inventory') renderInventory();
   if (name === 'clients')   renderClients();
-  if (name === 'labels')    renderLabels();
   if (name === 'sales')     renderSales();
+  if (name === 'labels')    renderLabels();
   if (name === 'payments')  renderPayments();
   if (name === 'expenses')  renderExpenses();
   if (name === 'profit')    renderProfit();
 }
 
 function openAddModal() {
-  // Context-aware — will be filled in per step
-  const handlers = {
-    inventory: () => window.openBatchModal?.(),
-    clients:   () => openClientModal(),
-    sales:     () => openSaleModal(),
-    expenses:  () => openExpModal(),
+  const actions = {
+    inventory: openBatchModal,
+    clients:   openClientModal,
+    sales:     openSaleModal,
+    expenses:  openExpModal,
   };
-  handlers[_currentPage]?.();
+  actions[_currentPage]?.();
 }
 
-// ── ROLE-BASED VISIBILITY ─────────────────────────────────────
+// ROLES
 function _setupRoles() {
   const role = STATE.user?.role;
-
-  // Staff cannot see: payments, expenses, profit, owner tools
-  const staffHidden = ['menu-pay','menu-exp','menu-profit','owner-tools'];
-  // Partner cannot see: owner tools
-  const partnerHidden = ['owner-tools'];
-
   if (role === 'staff') {
-    staffHidden.forEach(id => document.getElementById(id)?.classList.add('hide'));
+    ['menu-pay','menu-exp','menu-profit','owner-tools'].forEach(id =>
+      document.getElementById(id)?.classList.add('hide'));
   } else if (role === 'partner') {
-    partnerHidden.forEach(id => document.getElementById(id)?.classList.add('hide'));
+    document.getElementById('owner-tools')?.classList.add('hide');
   }
 }
 
-// ── LOAD ALL DATA ─────────────────────────────────────────────
-export async function loadAll() {
+// LOAD ALL DATA
+async function loadAll() {
   const [batches, clients, sales, expenses, payments] = await Promise.all([
-    DB.get('batches'),
-    DB.get('clients'),
-    DB.get('sales'),
-    DB.get('expenses'),
-    DB.get('payments'),
+    DB.get('batches'), DB.get('clients'), DB.get('sales'),
+    DB.get('expenses'), DB.get('payments'),
   ]);
-
   STATE.batches  = objToArr(batches).filter(b => !b.deleted);
   STATE.clients  = objToArr(clients).filter(c => c.active !== false);
   STATE.sales    = objToArr(sales);
@@ -255,96 +148,7 @@ export async function loadAll() {
   STATE.payments = objToArr(payments);
 }
 
-// ── LOGOUT ────────────────────────────────────────────────────
-function logout() {
-  STATE.user = null;
-
-  // Reset login UI
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('login').style.display = '';
-  document.getElementById('login').classList.remove('out');
-  document.getElementById('step-user').style.display = 'block';
-  document.getElementById('step-pin').style.display  = 'none';
-  document.getElementById('ls2').classList.remove('on');
-  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('sel'));
-
-  // Re-enable all role-hidden elements for next login
-  document.querySelectorAll('.role-hidden').forEach(el => el.classList.remove('hide'));
-}
-
-// ── BOOT ──────────────────────────────────────────────────────
-async function boot() {
-  _applyTheme();
-
-  const savedLogo = localStorage.getItem('zp-logo');
-  if (savedLogo) _applyLogo(savedLogo);
-
-  initBackdropClose();
-
-  // Run splash timer (2s) AND data load in parallel
-  const [_] = await Promise.all([
-    new Promise(r => setTimeout(r, 2000)),
-    loadSettings(),
-    loadUsers(),
-  ]);
-
-  // Hide splash
-  const splash = document.getElementById('splash');
-  splash.classList.add('out');
-  setTimeout(() => { splash.style.display = 'none'; }, 450);
-
-  buildNumpad();
-  _initMonthPicker();
-}
-
-// ── LOGIN SUCCESS ─────────────────────────────────────────────
-window.addEventListener('zp:login', async e => {
-  const user = e.detail;
-
-  // Animate login out
-  document.getElementById('login').classList.add('out');
-  setTimeout(() => { document.getElementById('login').style.display = 'none'; }, 400);
-
-  // Show app
-  document.getElementById('app').classList.add('show');
-
-  // Update topbar chip
-  document.getElementById('chip-av').textContent   = user.initials || initials(user.name);
-  document.getElementById('chip-av').style.background = user.color || '#6c63ff';
-  document.getElementById('chip-name').textContent    = user.name;
-  document.getElementById('logout-sub').textContent   = user.name + ' · ' + user.role;
-
-  _setupRoles();
-
-  // Load all data then render dashboard
-  await loadAll();
-
-  updateSaleDot();
-
-  renderDashboard();
-});
-
-// ── DATA-CHANGED EVENT ────────────────────────────────────────
-// Other modules dispatch this after saving — we reload everything
-window.addEventListener('zp:data-changed', async () => {
-  await loadAll();
-  // Re-render current page
-  const renders = {
-    dashboard: 'renderDashboard',
-    inventory: 'renderInventory',
-    clients:   'renderClients',
-    sales:     'renderSales',
-    labels:    'renderLabels',
-    payments:  'renderPayments',
-    expenses:  'renderExpenses',
-    profit:    'renderProfit',
-  };
-  // reload batches specifically before rendering inventory
-  const fn = window[renders[_currentPage]];
-  if (typeof fn === 'function') fn();
-});
-
-// ── SETTINGS LOADER (needed at boot before login) ─────────────
+// SETTINGS
 async function loadSettings() {
   const data = await DB.get('settings');
   if (data) {
@@ -353,66 +157,173 @@ async function loadSettings() {
     STATE.settings.expenseCategories  = data.expenseCategories  || _defaultExpCats();
     STATE.settings.lowLabelAlertPacks = data.lowLabelAlertPacks ?? 5;
   } else {
-    STATE.settings.packCategories    = _defaultPackCats();
-    STATE.settings.labelSheets       = _defaultSheets();
-    STATE.settings.expenseCategories = _defaultExpCats();
+    STATE.settings.packCategories     = _defaultPackCats();
+    STATE.settings.labelSheets        = _defaultSheets();
+    STATE.settings.expenseCategories  = _defaultExpCats();
     STATE.settings.lowLabelAlertPacks = 5;
     await DB.set('settings', STATE.settings);
   }
 }
-
 function _defaultPackCats() {
   return [
-    { id: 'sq1l',  model: 'Square',  size: '1L',    bottlesPerPack: 12 },
-    { id: 'sq500', model: 'Square',  size: '500ml', bottlesPerPack: 24 },
-    { id: 'sq250', model: 'Square',  size: '250ml', bottlesPerPack: 35 },
-    { id: 'pr1l',  model: 'Premium', size: '1L',    bottlesPerPack: 12 },
-    { id: 'pr500', model: 'Premium', size: '500ml', bottlesPerPack: 24 },
-    { id: 'pr250', model: 'Premium', size: '250ml', bottlesPerPack: 35 },
+    {id:'sq1l', model:'Square', size:'1L',   bottlesPerPack:12},
+    {id:'sq500',model:'Square', size:'500ml',bottlesPerPack:24},
+    {id:'sq250',model:'Square', size:'250ml',bottlesPerPack:35},
+    {id:'pr1l', model:'Premium',size:'1L',   bottlesPerPack:12},
+    {id:'pr500',model:'Premium',size:'500ml',bottlesPerPack:24},
+    {id:'pr250',model:'Premium',size:'250ml',bottlesPerPack:35},
   ];
 }
 function _defaultSheets() {
   return [
-    { id: 'ls_sq1l',  catId: 'sq1l',  labelsPerSheet: 24, pricePerSheet: 25 },
-    { id: 'ls_sq500', catId: 'sq500', labelsPerSheet: 44, pricePerSheet: 25 },
-    { id: 'ls_sq250', catId: 'sq250', labelsPerSheet: 60, pricePerSheet: 25 },
-    { id: 'ls_pr1l',  catId: 'pr1l',  labelsPerSheet: 15, pricePerSheet: 25 },
-    { id: 'ls_pr500', catId: 'pr500', labelsPerSheet: 30, pricePerSheet: 25 },
-    { id: 'ls_pr250', catId: 'pr250', labelsPerSheet: 48, pricePerSheet: 25 },
+    {id:'ls_sq1l', catId:'sq1l', labelsPerSheet:24,pricePerSheet:25},
+    {id:'ls_sq500',catId:'sq500',labelsPerSheet:44,pricePerSheet:25},
+    {id:'ls_sq250',catId:'sq250',labelsPerSheet:60,pricePerSheet:25},
+    {id:'ls_pr1l', catId:'pr1l', labelsPerSheet:15,pricePerSheet:25},
+    {id:'ls_pr500',catId:'pr500',labelsPerSheet:30,pricePerSheet:25},
+    {id:'ls_pr250',catId:'pr250',labelsPerSheet:48,pricePerSheet:25},
   ];
 }
 function _defaultExpCats() {
   return ['Vehicle','Salary','Utilities','Packaging','Maintenance','Other'];
 }
 
-// ── MONTH/YEAR PICKER (dashboard) ─────────────────────────────
+// MONTH PICKER
 function _initMonthPicker() {
   const months = ['January','February','March','April','May','June',
                   'July','August','September','October','November','December'];
   const now = new Date();
-
   const mSel = document.getElementById('dash-month');
   const ySel = document.getElementById('dash-year');
   if (!mSel || !ySel) return;
-
   mSel.innerHTML = '<option value="all">All Months</option>';
   months.forEach((m, i) => {
-    const opt = document.createElement('option');
-    opt.value = i + 1;
-    opt.textContent = m;
-    if (i + 1 === now.getMonth() + 1) opt.selected = true;
-    mSel.appendChild(opt);
+    const o = document.createElement('option');
+    o.value = i+1; o.textContent = m;
+    if (i+1 === now.getMonth()+1) o.selected = true;
+    mSel.appendChild(o);
   });
-
   ySel.innerHTML = '<option value="all">All Years</option>';
-  for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
-    if (y === now.getFullYear()) opt.selected = true;
-    ySel.appendChild(opt);
+  for (let y = now.getFullYear(); y >= now.getFullYear()-4; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if (y === now.getFullYear()) o.selected = true;
+    ySel.appendChild(o);
   }
 }
 
-// ── START ─────────────────────────────────────────────────────
+// LOGOUT
+function logout() {
+  STATE.user = null;
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login').style.display = '';
+  document.getElementById('login').classList.remove('out');
+  document.getElementById('step-user').style.display = 'block';
+  document.getElementById('step-pin').style.display  = 'none';
+  document.getElementById('ls2').classList.remove('on');
+  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('sel'));
+  ['menu-pay','menu-exp','menu-profit','owner-tools'].forEach(id =>
+    document.getElementById(id)?.classList.remove('hide'));
+}
+
+// BOOT
+async function boot() {
+  _applyTheme();
+  const savedLogo = localStorage.getItem('zp-logo');
+  if (savedLogo) _applyLogo(savedLogo);
+  initBackdropClose();
+  await Promise.all([
+    new Promise(r => setTimeout(r, 2000)),
+    loadSettings(),
+    loadUsers(),
+  ]);
+  const splash = document.getElementById('splash');
+  splash.classList.add('out');
+  setTimeout(() => { splash.style.display = 'none'; }, 450);
+  buildNumpad();
+  _initMonthPicker();
+}
+
+// LOGIN SUCCESS
+window.addEventListener('zp:login', async e => {
+  const user = e.detail;
+  document.getElementById('login').classList.add('out');
+  setTimeout(() => { document.getElementById('login').style.display = 'none'; }, 400);
+  document.getElementById('app').classList.add('show');
+  document.getElementById('chip-av').textContent      = user.initials || user.name.slice(0,2);
+  document.getElementById('chip-av').style.background = user.color || '#6c63ff';
+  document.getElementById('chip-name').textContent    = user.name;
+  document.getElementById('logout-sub').textContent   = user.name + ' · ' + user.role;
+  _setupRoles();
+  await loadAll();
+  updateSaleDot();
+  renderDashboard();
+});
+
+// DATA CHANGED
+window.addEventListener('zp:data-changed', async () => {
+  await loadAll();
+  updateSaleDot();
+  const renders = {
+    dashboard: renderDashboard, inventory: renderInventory,
+    clients:   renderClients,   sales:     renderSales,
+    labels:    renderLabels,    payments:  renderPayments,
+    expenses:  renderExpenses,  profit:    renderProfit,
+  };
+  renders[_currentPage]?.();
+});
+
+// EXPOSE TO WINDOW
+window.checkPin              = checkPin;
+window.goStep1               = goStep1;
+window.showPage              = showPage;
+window.openAddModal          = openAddModal;
+window.toggleTheme           = toggleTheme;
+window.logout                = logout;
+window.openLogoModal         = openLogoModal;
+window.previewLogo           = previewLogo;
+window.saveLogo              = saveLogo;
+window.removeLogo            = removeLogo;
+window.openUsersModal        = openUsersModal;
+window.addUser               = addUser;
+window.openSettingsModal     = openSettingsModal;
+window.sAddPack              = sAddPack;
+window.sAddSheet             = sAddSheet;
+window.sAddExpCat            = sAddExpCat;
+window.saveLowLabelThreshold = saveLowLabelThreshold;
+window.openBatchModal        = openBatchModal;
+window.submitBatch           = submitBatch;
+window.openBatchDetail       = openBatchDetail;
+window.toggleSoldOut         = toggleSoldOut;
+window.deleteBatch           = deleteBatch;
+window.openBatchWastageModal = openBatchWastageModal;
+window.submitBatchWastage    = submitBatchWastage;
+window._updateBatchPreview   = _updateBatchPreview;
+window.openClientModal       = openClientModal;
+window.submitClient          = submitClient;
+window.openClientDetail      = openClientDetail;
+window.submitPriceUpdate     = submitPriceUpdate;
+window.deleteClient          = deleteClient;
+window.openLabelDetail       = openLabelDetail;
+window.openAddSheetModal     = openAddSheetModal;
+window.submitAddSheets       = submitAddSheets;
+window.openLabelWastageModal = openLabelWastageModal;
+window.submitLabelWastage    = submitLabelWastage;
+window.openSaleModal         = openSaleModal;
+window.submitSale            = submitSale;
+window.openSaleDetail        = openSaleDetail;
+window.openUpdatePayment     = openUpdatePayment;
+window.deleteSale            = deleteSale;
+window._loadSaleRows         = _loadSaleRows;
+window._calcSaleTotal        = _calcSaleTotal;
+window._togglePaidField      = _togglePaidField;
+window.openPayModal          = openPayModal;
+window.previewPayment        = previewPayment;
+window.submitPayment         = submitPayment;
+window.openExpModal          = openExpModal;
+window.submitExpense         = submitExpense;
+window.deleteExpense         = deleteExpense;
+window.openEditExp           = (id) => openExpModal(id);
+window.openAuditModal        = openAuditModal;
+
 document.addEventListener('DOMContentLoaded', boot);
