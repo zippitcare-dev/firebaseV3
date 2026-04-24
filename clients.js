@@ -85,12 +85,15 @@ export function openClientModal(editId = null) {
   const c = editId ? STATE.clients.find(x => x.id === editId) : null;
 
   document.getElementById('cli-modal-title').textContent = editId ? 'Edit Client' : 'New Client';
+
+  // Build form first — this creates the input elements
+  _buildPriceRows(c);
+
+  // Now set values after inputs exist in the DOM
   document.getElementById('c-name').value  = c?.name     || '';
   document.getElementById('c-loc').value   = c?.location || '';
   document.getElementById('c-phone').value = c?.phone    || '';
   document.getElementById('c-notes').value = c?.notes    || '';
-
-  _buildPriceRows(c);
 
   if (editId) closeModal('modal-cli-detail');
   openModal('modal-client');
