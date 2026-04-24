@@ -3,14 +3,17 @@ import { DB, objToArr, fmt, today, nowISO, colorFor, initials } from './firebase
 import { STATE } from './state.js';
 import { toast, showConfirm, openModal, closeModal } from './ui.js';
 import { getCatName, labelCostPerPack } from './settings.js';
-import { getLabelsRemaining } from './labels.js';
 
 // ── HELPERS ───────────────────────────────────────────────────
-function _activeBatches() {
+// Only batches that are active AND have stock for at least one category the client uses
+function _batchesForClient(clientId) {
+  const c = STATE.clients.find(x => x.id === clientId);
+  if (!c) return [];
+  const clientCats = Object.keys(c.categories || {});
   return STATE.batches.filter(b => {
     if (b.deleted) return false;
-    const items = Object.values(b.items || {});
-    return items.some(it => Number(it.qtyRemaining || 0) > 0);
+    // Must have at least one category matching client AND with remaining stock
+    return clientCats.some(catId => Number(b.items?.[catId]?.qtyRemaining || 0) > 0);
   });
 }
 
@@ -19,7 +22,7 @@ export function renderSales() {
   _wireChips();
 
   const filter = document.querySelector('#sale-chips .chip-f.on')?.dataset.s || '';
-  let   list   = filter
+  let list = filter
     ? STATE.sales.filter(s => s.paymentStatus === filter)
     : [...STATE.sales];
 
@@ -47,11 +50,10 @@ export function renderSales() {
 
   el.innerHTML = '<div class="card">';
   list.forEach(s => {
-    const badge = s.paymentStatus === 'paid'    ? 'b-green' :
-                  s.paymentStatus === 'partial'  ? 'b-amber' : 'b-red';
-    const label = s.paymentStatus === 'paid'    ? 'Paid' :
-                  s.paymentStatus === 'partial'  ? 'Partial' : 'Pending';
-
+    const badge = s.paymentStatus === 'paid'   ? 'b-green' :
+                  s.paymentStatus === 'partial' ? 'b-amber' : 'b-red';
+    const label = s.paymentStatus === 'paid'   ? 'Paid' :
+                  s.paymentStatus === 'partial' ? 'Partial' : 'Pending';
     el.innerHTML +=
       '<div class="li" onclick="window.openSaleDetail(\'' + s.id + '\')" style="cursor:pointer">' +
         '<div class="li-av" style="background:' + colorFor(s.clientId || 'x') + '">' +
@@ -68,7 +70,6 @@ export function renderSales() {
       '</div>';
   });
   el.innerHTML += '</div>';
-
   updateSaleDot();
 }
 
@@ -91,30 +92,20 @@ function _wireChips() {
 
 // ── OPEN SALE MODAL ───────────────────────────────────────────
 export function openSaleModal() {
-  // Build sale form dynamically
   const saleBody = document.getElementById('sale-body');
 
-  // Client select options
   const clientOpts = '<option value="">— Select client —</option>' +
     STATE.clients.map(c =>
       '<option value="' + c.id + '">' + c.name + '</option>'
     ).join('');
 
-  // Active batch options
-  const batchOpts = '<option value="">— Select batch —</option>' +
-    _activeBatches().map(b => {
-      const rem = Object.values(b.items || {}).reduce((s, it) => s + Number(it.qtyRemaining || 0), 0);
-      return '<option value="' + b.id + '">' + b.batchNo + ' (' + rem + ' packs left)</option>';
-    }).join('');
-
   saleBody.innerHTML =
     '<div class="form-group">' +
       '<label class="form-label">Client *</label>' +
-      '<select class="form-select" id="s-client" onchange="window._loadSaleRows()">' +
+      '<select class="form-select" id="s-client" onchange="window._onClientChange()">' +
         clientOpts +
       '</select>' +
     '</div>' +
-
     '<div class="form-row">' +
       '<div class="form-group">' +
         '<label class="form-label">Sale Date *</label>' +
@@ -122,18 +113,13 @@ export function openSaleModal() {
       '</div>' +
       '<div class="form-group">' +
         '<label class="form-label">Batch *</label>' +
-        '<select class="form-select" id="s-batch" onchange="window._loadSaleRows()">' +
-          batchOpts +
-        '</select>' +
+        '<select class="form-select" id="s-batch" onchange="window._onBatchChange()"><option value="">— Select client first —</option></select>' +
       '</div>' +
     '</div>' +
-
     '<div class="sec-hdr"><span class="sec-title">Packs Sold</span></div>' +
     '<div id="sale-pack-rows">' +
       '<div style="color:var(--text3);font-size:13px;padding:10px 0">Select client and batch to continue</div>' +
     '</div>' +
-
-    // Live cost preview
     '<div style="background:var(--surface2);border-radius:var(--r12);padding:14px;margin-bottom:14px">' +
       '<div class="info-row"><span class="info-label">Total Revenue</span><span class="info-val" id="s-prev-rev">&#8377;0</span></div>' +
       '<div class="info-row"><span class="info-label">Total Cost</span><span class="info-val" id="s-prev-cost">&#8377;0</span></div>' +
@@ -141,7 +127,6 @@ export function openSaleModal() {
         '<span class="info-val" style="color:var(--green)" id="s-prev-profit">&#8377;0</span>' +
       '</div>' +
     '</div>' +
-
     '<div class="form-group">' +
       '<label class="form-label">Payment Status</label>' +
       '<select class="form-select" id="s-pay-status" onchange="window._togglePaidField()">' +
@@ -150,23 +135,53 @@ export function openSaleModal() {
         '<option value="pending">Pending</option>' +
       '</select>' +
     '</div>' +
-
     '<div class="form-group" id="s-paid-wrap" style="display:none">' +
       '<label class="form-label">Amount Paid Now (&#8377;)</label>' +
       '<input class="form-input" type="number" inputmode="numeric" id="s-paid" placeholder="0"/>' +
     '</div>' +
-
     '<div style="font-size:11px;color:var(--text3);margin-bottom:14px">' +
       'Entered by: <strong style="color:var(--text2)">' + STATE.user.name + '</strong>' +
     '</div>' +
-
     '<button class="btn-primary" onclick="window.submitSale()">Save Sale</button>';
 
   openModal('modal-sale');
 }
 
-// ── LOAD PACK ROWS WHEN CLIENT + BATCH SELECTED ───────────────
-export function _loadSaleRows() {
+// When client changes — update batch dropdown to only show relevant batches
+export function _onClientChange() {
+  const clientId = document.getElementById('s-client')?.value;
+  const bSel     = document.getElementById('s-batch');
+  if (!bSel) return;
+
+  if (!clientId) {
+    bSel.innerHTML = '<option value="">— Select client first —</option>';
+    document.getElementById('sale-pack-rows').innerHTML =
+      '<div style="color:var(--text3);font-size:13px;padding:10px 0">Select client and batch to continue</div>';
+    return;
+  }
+
+  const batches = _batchesForClient(clientId);
+  if (!batches.length) {
+    bSel.innerHTML = '<option value="">No active batches for this client</option>';
+    return;
+  }
+
+  bSel.innerHTML = '<option value="">— Select batch —</option>' +
+    batches.map(b => {
+      const c         = STATE.clients.find(x => x.id === clientId);
+      const clientCats = Object.keys(c?.categories || {});
+      const rem = clientCats.reduce((s, catId) =>
+        s + Number(b.items?.[catId]?.qtyRemaining || 0), 0);
+      return '<option value="' + b.id + '">' + b.batchNo + ' (' + rem + ' packs left)</option>';
+    }).join('');
+
+  // Reset pack rows
+  document.getElementById('sale-pack-rows').innerHTML =
+    '<div style="color:var(--text3);font-size:13px;padding:10px 0">Now select a batch</div>';
+}
+
+// When batch changes — build pack rows
+export function _onBatchChange() {
   const clientId = document.getElementById('s-client')?.value;
   const batchId  = document.getElementById('s-batch')?.value;
   const el       = document.getElementById('sale-pack-rows');
@@ -181,7 +196,7 @@ export function _loadSaleRows() {
   const b = STATE.batches.find(x => x.id === batchId);
   if (!c || !b) return;
 
-  // Only show categories that client has a price for AND batch has stock for
+  // Only categories client has price for AND batch has stock for
   const rows = [];
   Object.entries(c.categories || {}).forEach(([catId, cat]) => {
     const bItem = b.items?.[catId];
@@ -201,6 +216,7 @@ export function _loadSaleRows() {
     const totalCost = Number(bItem.totalCostPerPack || 0) + lblCost;
     const profit    = cat.sellingPrice - totalCost;
 
+    // Use data attribute for catId — safer than parsing from id
     el.innerHTML +=
       '<div class="pack-card">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
@@ -213,16 +229,16 @@ export function _loadSaleRows() {
         '</div>' +
         '<label class="form-label">Qty (max ' + bItem.qtyRemaining + ' packs)</label>' +
         '<input class="pack-input" type="number" inputmode="numeric"' +
-          ' id="sq_' + catId + '"' +
-          ' min="0" max="' + bItem.qtyRemaining + '"' +
-          ' placeholder="0"' +
+          ' data-cat-id="' + catId + '"' +
           ' data-sell="' + cat.sellingPrice + '"' +
           ' data-bcost="' + bItem.totalCostPerPack + '"' +
           ' data-lcost="' + lblCost + '"' +
+          ' min="0" max="' + bItem.qtyRemaining + '"' +
+          ' placeholder="0"' +
           ' oninput="window._calcSaleTotal()"/>' +
         '<div style="font-size:11px;color:var(--text2);margin-top:6px">' +
-          'Batch: ' + fmt(bItem.totalCostPerPack) + ' + Labels: ' + fmt(lblCost) + ' = ' +
-          '<span style="color:var(--accent);font-weight:700">' + fmt(totalCost) + '/pack</span>' +
+          'Batch: ' + fmt(bItem.totalCostPerPack) + ' + Labels: ' + fmt(lblCost) +
+          ' = <span style="color:var(--accent);font-weight:700">' + fmt(totalCost) + '/pack</span>' +
         '</div>' +
       '</div>';
   });
@@ -266,28 +282,28 @@ export async function submitSale() {
   const batchId  = document.getElementById('s-batch')?.value;
   const saleDate = document.getElementById('s-date')?.value;
 
-  if (!clientId) { toast('Select a client', true); return; }
-  if (!batchId)  { toast('Select a batch',  true); return; }
+  if (!clientId) { toast('Select a client',  true); return; }
+  if (!batchId)  { toast('Select a batch',   true); return; }
   if (!saleDate) { toast('Select sale date', true); return; }
 
   const c = STATE.clients.find(x => x.id === clientId);
   const b = STATE.batches.find(x => x.id === batchId);
 
-  // Collect items
+  // Collect items using data-cat-id attribute (not id parsing)
   const items = {};
   let totalRevenue = 0, totalCost = 0, totalPacks = 0;
 
   document.querySelectorAll('#sale-pack-rows .pack-input').forEach(inp => {
-    const catId = inp.id.replace('sq_', '');
+    const catId = inp.dataset.catId;   // safe — no string manipulation
     const qty   = Number(inp.value || 0);
-    if (!qty) return;
+    if (!catId || !qty) return;
 
-    const sell      = Number(inp.dataset.sell  || 0);
-    const bCost     = Number(inp.dataset.bcost || 0);
-    const lCost     = Number(inp.dataset.lcost || 0);
-    const totalCPP  = bCost + lCost;
-    const lineRev   = qty * sell;
-    const lineCost  = qty * totalCPP;
+    const sell     = Number(inp.dataset.sell  || 0);
+    const bCost    = Number(inp.dataset.bcost || 0);
+    const lCost    = Number(inp.dataset.lcost || 0);
+    const totalCPP = bCost + lCost;
+    const lineRev  = qty * sell;
+    const lineCost = qty * totalCPP;
 
     items[catId] = {
       categoryId:       catId,
@@ -320,43 +336,45 @@ export async function submitSale() {
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
 
   try {
-    // Save sale
+    // 1. Save sale record
     await DB.push('sales', {
-      clientId, clientName: c?.name || '',
-      batchId,  batchNo:    b?.batchNo || '',
-      saleDate, items, totalPacks,
+      clientId,  clientName: c?.name    || '',
+      batchId,   batchNo:    b?.batchNo || '',
+      saleDate,  items,      totalPacks,
       totalRevenue, totalCost, grossProfit,
       paymentStatus: payStatus, amountPaid, amountPending,
-      createdAt:  nowISO(), createdBy:  STATE.user.name,
+      createdAt: nowISO(), createdBy:  STATE.user.name,
       modifiedAt: nowISO(), modifiedBy: STATE.user.name,
     });
 
-    // Update batch stock
-    const stockUpdates = {};
+    // 2. Update batch stock + label usage atomically
+    const updates = {};
     Object.entries(items).forEach(([catId, it]) => {
+      if (!catId) return; // safety guard
       const bItem = b?.items?.[catId];
-      if (!bItem) return;
-      stockUpdates['batches/' + batchId + '/items/' + catId + '/qtyRemaining'] =
-        Math.max(0, Number(bItem.qtyRemaining || 0) - it.qty);
-      stockUpdates['batches/' + batchId + '/items/' + catId + '/qtySold'] =
-        Number(bItem.qtySold || 0) + it.qty;
-    });
-
-    // Update label usage
-    Object.entries(items).forEach(([catId, it]) => {
-      const cat         = STATE.settings.packCategories.find(x => x.id === catId);
-      const labelsUsed  = it.qty * (cat?.bottlesPerPack || 0);
-      const existing    = Number(c?.labels?.[catId]?.labelsUsed || 0);
-      stockUpdates['clients/' + clientId + '/labels/' + catId + '/labelsUsed'] =
+      if (bItem) {
+        updates['batches/' + batchId + '/items/' + catId + '/qtyRemaining'] =
+          Math.max(0, Number(bItem.qtyRemaining || 0) - it.qty);
+        updates['batches/' + batchId + '/items/' + catId + '/qtySold'] =
+          Number(bItem.qtySold || 0) + it.qty;
+      }
+      // Label deduction
+      const cat        = STATE.settings.packCategories.find(x => x.id === catId);
+      const labelsUsed = it.qty * (cat?.bottlesPerPack || 0);
+      const existing   = Number(c?.labels?.[catId]?.labelsUsed || 0);
+      updates['clients/' + clientId + '/labels/' + catId + '/labelsUsed'] =
         existing + labelsUsed;
     });
 
-    await DB.multiUpdate(stockUpdates);
+    if (Object.keys(updates).length > 0) {
+      await DB.multiUpdate(updates);
+    }
 
     toast('Sale saved! Revenue: ' + fmt(totalRevenue) + ' · Profit: ' + fmt(grossProfit));
     closeModal('modal-sale');
     window.dispatchEvent(new CustomEvent('zp:data-changed'));
   } catch (err) {
+    console.error('Sale save error:', err);
     toast('Failed: ' + err.message, true);
   } finally {
     if (btn) { btn.textContent = 'Save Sale'; btn.disabled = false; }
@@ -387,21 +405,19 @@ export function openSaleDetail(saleId) {
   document.getElementById('sale-detail-body').innerHTML =
     '<div style="margin-bottom:14px">' +
       '<div style="font-size:17px;font-weight:800">' + s.clientName + '</div>' +
-      '<div style="font-size:12px;color:var(--text2)">&#128197; ' + s.saleDate + ' &middot; Batch: ' + s.batchNo + ' &middot; ' + s.totalPacks + ' packs</div>' +
+      '<div style="font-size:12px;color:var(--text2)">&#128197; ' + s.saleDate +
+        ' &middot; Batch: ' + s.batchNo + ' &middot; ' + s.totalPacks + ' packs</div>' +
     '</div>' +
-
     '<div class="card-sm" style="margin-bottom:12px">' + itemRows + '</div>' +
-
     '<div class="info-row"><span class="info-label">Revenue</span><span class="info-val">' + fmt(s.totalRevenue) + '</span></div>' +
     '<div class="info-row"><span class="info-label">Cost</span><span class="info-val">' + fmt(s.totalCost) + '</span></div>' +
     '<div class="info-row"><span class="info-label">Gross Profit</span><span class="info-val" style="color:var(--green)">' + fmt(s.grossProfit) + '</span></div>' +
     '<div class="info-row"><span class="info-label">Payment</span><span class="info-val"><span class="badge ' + badge + '">' + label + '</span> ' + fmt(s.amountPaid) + ' paid</span></div>' +
     '<div class="info-row"><span class="info-label">Pending</span><span class="info-val" style="color:var(--red)">' + fmt(s.amountPending) + '</span></div>' +
     '<div class="info-row" style="border:none"><span class="info-label">Entered by</span><span class="info-val">' + (s.createdBy || '—') + '</span></div>' +
-
     '<div style="display:flex;gap:10px;margin-top:16px">' +
       '<button class="btn-secondary" style="flex:1" onclick="window.openUpdatePayment()">Update Payment</button>' +
-      '<button class="btn-danger"    style="flex:1" onclick="window.deleteSale()">Delete</button>' +
+      '<button class="btn-danger" style="flex:1" onclick="window.deleteSale()">Delete</button>' +
     '</div>';
 
   openModal('modal-sale-detail');
@@ -412,7 +428,6 @@ export async function openUpdatePayment() {
   const s = STATE.sales.find(x => x.id === window._editSaleId);
   if (!s) return;
 
-  // Simple inline prompt via confirm-style
   const status = prompt(
     'Update payment status\nCurrent: ' + s.paymentStatus +
     '\n\nType: paid / partial / pending'
@@ -429,34 +444,66 @@ export async function openUpdatePayment() {
 
   const pending = Math.max(0, s.totalRevenue - paid);
 
-  await DB.update('sales/' + window._editSaleId, {
-    paymentStatus: status,
-    amountPaid:    paid,
-    amountPending: pending,
-    modifiedAt:    nowISO(),
-    modifiedBy:    STATE.user.name,
-  });
-
-  toast('Payment updated!');
-  closeModal('modal-sale-detail');
-  window.dispatchEvent(new CustomEvent('zp:data-changed'));
+  try {
+    await DB.update('sales/' + window._editSaleId, {
+      paymentStatus: status,
+      amountPaid:    paid,
+      amountPending: pending,
+      modifiedAt:    nowISO(),
+      modifiedBy:    STATE.user.name,
+    });
+    toast('Payment updated!');
+    closeModal('modal-sale-detail');
+    window.dispatchEvent(new CustomEvent('zp:data-changed'));
+  } catch (err) {
+    toast('Failed: ' + err.message, true);
+  }
 }
 
 // ── DELETE SALE ───────────────────────────────────────────────
 export async function deleteSale() {
-  const s  = STATE.sales.find(x => x.id === window._editSaleId);
+  const s = STATE.sales.find(x => x.id === window._editSaleId);
   if (!s) return;
 
   const ok = await showConfirm(
     'Delete this sale?',
-    s.clientName + ' — ' + fmt(s.totalRevenue) + '\nThis cannot be undone.'
+    s.clientName + ' — ' + fmt(s.totalRevenue) + '\nStock and labels will be restored.'
   );
   if (!ok) return;
 
-  await DB.remove('sales/' + window._editSaleId);
-  toast('Sale deleted');
-  closeModal('modal-sale-detail');
-  window.dispatchEvent(new CustomEvent('zp:data-changed'));
+  try {
+    // Restore batch stock and label counts
+    const b       = STATE.batches.find(x => x.id === s.batchId);
+    const c       = STATE.clients.find(x => x.id === s.clientId);
+    const updates = {};
+
+    Object.entries(s.items || {}).forEach(([catId, it]) => {
+      if (!catId) return;
+      const bItem = b?.items?.[catId];
+      if (bItem) {
+        updates['batches/' + s.batchId + '/items/' + catId + '/qtyRemaining'] =
+          Number(bItem.qtyRemaining || 0) + it.qty;
+        updates['batches/' + s.batchId + '/items/' + catId + '/qtySold'] =
+          Math.max(0, Number(bItem.qtySold || 0) - it.qty);
+      }
+      const cat        = STATE.settings.packCategories.find(x => x.id === catId);
+      const labelsUsed = it.qty * (cat?.bottlesPerPack || 0);
+      const existing   = Number(c?.labels?.[catId]?.labelsUsed || 0);
+      updates['clients/' + s.clientId + '/labels/' + catId + '/labelsUsed'] =
+        Math.max(0, existing - labelsUsed);
+    });
+
+    if (Object.keys(updates).length > 0) {
+      await DB.multiUpdate(updates);
+    }
+
+    await DB.remove('sales/' + window._editSaleId);
+    toast('Sale deleted — stock and labels restored');
+    closeModal('modal-sale-detail');
+    window.dispatchEvent(new CustomEvent('zp:data-changed'));
+  } catch (err) {
+    toast('Failed: ' + err.message, true);
+  }
 }
 
 // ── EXPOSE TO WINDOW ──────────────────────────────────────────
@@ -465,6 +512,7 @@ window.openSaleModal     = openSaleModal;
 window.submitSale        = submitSale;
 window.openUpdatePayment = openUpdatePayment;
 window.deleteSale        = deleteSale;
-window._loadSaleRows     = _loadSaleRows;
+window._onClientChange   = _onClientChange;
+window._onBatchChange    = _onBatchChange;
 window._calcSaleTotal    = _calcSaleTotal;
 window._togglePaidField  = _togglePaidField;

@@ -201,3 +201,5 @@ function _renderTopClients(filtSales) {
       '</div>';
   });
 }
+
+window.renderDashboard = renderDashboard;

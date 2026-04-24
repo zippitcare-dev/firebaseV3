@@ -14,7 +14,8 @@ import { renderLabels, openLabelDetail, openAddSheetModal, submitAddSheets,
          openLabelWastageModal, submitLabelWastage } from './labels.js';
 import { renderSales, openSaleModal, submitSale, openSaleDetail,
          openUpdatePayment, deleteSale, updateSaleDot,
-         _loadSaleRows, _calcSaleTotal, _togglePaidField } from './sales.js';
+         _onClientChange, _onBatchChange,
+         _calcSaleTotal, _togglePaidField } from './sales.js';
 import { renderPayments, openPayModal, previewPayment, submitPayment } from './payments.js';
 import { renderExpenses, openExpModal, submitExpense, deleteExpense } from './expenses.js';
 import { renderProfit } from './profit.js';
@@ -314,7 +315,8 @@ window.submitSale            = submitSale;
 window.openSaleDetail        = openSaleDetail;
 window.openUpdatePayment     = openUpdatePayment;
 window.deleteSale            = deleteSale;
-window._loadSaleRows         = _loadSaleRows;
+window._onClientChange       = _onClientChange;
+window._onBatchChange        = _onBatchChange;
 window._calcSaleTotal        = _calcSaleTotal;
 window._togglePaidField      = _togglePaidField;
 window.openPayModal          = openPayModal;
