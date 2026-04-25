@@ -23,7 +23,7 @@ export const DB = {
   update:      (path, val) => update(ref(db, path), val),
   remove:      (path)      => remove(ref(db, path)),
   listen:      (path, cb)  => onValue(ref(db, path), s => cb(s.val())),
-  multiUpdate: (obj)       => update(ref(db, ''), obj),
+  multiUpdate: (obj)       => update(ref(db, '/'), obj),
 };
 
 // ── Utilities ─────────────────────────────────────────────────

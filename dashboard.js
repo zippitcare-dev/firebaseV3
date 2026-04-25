@@ -41,6 +41,10 @@ export function renderDashboard() {
   document.getElementById('d-pend').textContent  = fmt(pending);
   document.getElementById('d-exp').textContent   = fmt(expenses);
   document.getElementById('d-sales').textContent = filtSales.length;
+  // Store for click handler
+  window._dashFilteredSales = filtSales;
+  const salesEl = document.getElementById('d-sales');
+  if (salesEl) salesEl.style.cursor = 'pointer';
 
   _renderTrendChart(filtSales, mVal, yVal, now);
   _renderLabelAlerts();
@@ -201,5 +205,52 @@ function _renderTopClients(filtSales) {
       '</div>';
   });
 }
+
+// ── SALES SUMMARY MODAL (clicking sales count on dashboard) ───
+export function openSalesSummaryModal(filtSales) {
+  // Total packs
+  let totalPacks = 0;
+  const catTotals = {}; // catId -> {packs, revenue, profit}
+
+  filtSales.forEach(s => {
+    totalPacks += Number(s.totalPacks || 0);
+    Object.entries(s.items || {}).forEach(([catId, it]) => {
+      if (!catTotals[catId]) {
+        catTotals[catId] = { name: it.categoryName || catId, packs: 0, revenue: 0, profit: 0 };
+      }
+      catTotals[catId].packs   += Number(it.qty          || 0);
+      catTotals[catId].revenue += Number(it.lineRevenue   || 0);
+      catTotals[catId].profit  += Number(it.lineProfit    || 0);
+    });
+  });
+
+  const totalRevenue = filtSales.reduce((s, r) => s + Number(r.totalRevenue || 0), 0);
+  const totalProfit  = filtSales.reduce((s, r) => s + Number(r.grossProfit  || 0), 0);
+
+  let catRows = Object.values(catTotals)
+    .sort((a, b) => b.revenue - a.revenue)
+    .map(c =>
+      '<div class="info-row">' +
+        '<span class="info-label">' + c.name + '</span>' +
+        '<div style="text-align:right">' +
+          '<div style="font-weight:700">' + c.packs.toLocaleString() + ' packs · ' + fmt(c.revenue) + '</div>' +
+          '<div style="font-size:11px;color:var(--green)">Profit: ' + fmt(c.profit) + '</div>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+
+  document.getElementById('sales-summary-body').innerHTML =
+    '<div class="card-sm" style="margin-bottom:12px">' +
+      '<div class="info-row"><span class="info-label">Total Sales</span><span class="info-val">' + filtSales.length + '</span></div>' +
+      '<div class="info-row"><span class="info-label">Total Packs Sold</span><span class="info-val">' + totalPacks.toLocaleString() + '</span></div>' +
+      '<div class="info-row"><span class="info-label">Total Revenue</span><span class="info-val">' + fmt(totalRevenue) + '</span></div>' +
+      '<div class="info-row" style="border:none"><span class="info-label">Gross Profit</span><span class="info-val" style="color:var(--green)">' + fmt(totalProfit) + '</span></div>' +
+    '</div>' +
+    '<div class="sec-title" style="margin-bottom:10px">By Pack Category</div>' +
+    '<div class="card-sm">' + (catRows || '<div style="color:var(--text3);font-size:13px">No data</div>') + '</div>';
+
+  document.getElementById('modal-sales-summary').classList.add('show');
+}
+window.openSalesSummaryModal = openSalesSummaryModal;
 
 window.renderDashboard = renderDashboard;

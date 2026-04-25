@@ -12,8 +12,8 @@ function _batchesForClient(clientId) {
   const clientCats = Object.keys(c.categories || {});
   return STATE.batches.filter(b => {
     if (b.deleted) return false;
-    // Must have at least one category matching client AND with remaining stock
-    return clientCats.some(catId => Number(b.items?.[catId]?.qtyRemaining || 0) > 0);
+    // Batch has one categoryId, must match client's categories AND have remaining stock
+    return clientCats.includes(b.categoryId) && Number(b.qtyRemaining || 0) > 0;
   });
 }
 
@@ -168,11 +168,8 @@ export function _onClientChange() {
 
   bSel.innerHTML = '<option value="">— Select batch —</option>' +
     batches.map(b => {
-      const c         = STATE.clients.find(x => x.id === clientId);
-      const clientCats = Object.keys(c?.categories || {});
-      const rem = clientCats.reduce((s, catId) =>
-        s + Number(b.items?.[catId]?.qtyRemaining || 0), 0);
-      return '<option value="' + b.id + '">' + b.batchNo + ' (' + rem + ' packs left)</option>';
+      const rem = Number(b.qtyRemaining || 0);
+      return '<option value="' + b.id + '">' + b.batchNo + ' — ' + getCatName(b.categoryId) + ' (' + rem + ' packs left)</option>';
     }).join('');
 
   // Reset pack rows
@@ -196,52 +193,44 @@ export function _onBatchChange() {
   const b = STATE.batches.find(x => x.id === batchId);
   if (!c || !b) return;
 
-  // Only categories client has price for AND batch has stock for
-  const rows = [];
-  Object.entries(c.categories || {}).forEach(([catId, cat]) => {
-    const bItem = b.items?.[catId];
-    if (!bItem || Number(bItem.qtyRemaining || 0) <= 0) return;
-    rows.push({ catId, cat, bItem });
-  });
+  // Batch is flat — one categoryId
+  const catId = b.categoryId;
+  const cat   = c.categories?.[catId];
 
-  if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">No matching pack types between this client and batch</div>';
+  if (!catId || !cat) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">No matching pack type between this client and batch</div>';
     _resetCalc();
     return;
   }
 
-  el.innerHTML = '';
-  rows.forEach(({ catId, cat, bItem }) => {
-    const lblCost   = labelCostPerPack(catId);
-    const totalCost = Number(bItem.totalCostPerPack || 0) + lblCost;
-    const profit    = cat.sellingPrice - totalCost;
+  const lblCost   = labelCostPerPack(catId);
+  const totalCost = Number(b.totalCostPerPack || 0) + lblCost;
+  const profit    = cat.sellingPrice - totalCost;
 
-    // Use data attribute for catId — safer than parsing from id
-    el.innerHTML +=
-      '<div class="pack-card">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
-          '<span style="font-size:14px;font-weight:700">' + getCatName(catId) + '</span>' +
-          '<div style="text-align:right;font-size:11px">' +
-            '<div>Sell: <span style="color:var(--green);font-weight:700">' + fmt(cat.sellingPrice) + '/pack</span></div>' +
-            '<div>Cost: <span style="font-weight:700">' + fmt(totalCost) + '/pack</span></div>' +
-            '<div style="color:' + (profit >= 0 ? 'var(--green)' : 'var(--red)') + ';font-weight:700">Profit: ' + fmt(profit) + '/pack</div>' +
-          '</div>' +
+  el.innerHTML =
+    '<div class="pack-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">' +
+        '<span style="font-size:14px;font-weight:700">' + getCatName(catId) + '</span>' +
+        '<div style="text-align:right;font-size:11px">' +
+          '<div>Sell: <span style="color:var(--green);font-weight:700">' + fmt(cat.sellingPrice) + '/pack</span></div>' +
+          '<div>Cost: <span style="font-weight:700">' + fmt(totalCost) + '/pack</span></div>' +
+          '<div style="color:' + (profit >= 0 ? 'var(--green)' : 'var(--red)') + ';font-weight:700">Profit: ' + fmt(profit) + '/pack</div>' +
         '</div>' +
-        '<label class="form-label">Qty (max ' + bItem.qtyRemaining + ' packs)</label>' +
-        '<input class="pack-input" type="number" inputmode="numeric"' +
-          ' data-cat-id="' + catId + '"' +
-          ' data-sell="' + cat.sellingPrice + '"' +
-          ' data-bcost="' + bItem.totalCostPerPack + '"' +
-          ' data-lcost="' + lblCost + '"' +
-          ' min="0" max="' + bItem.qtyRemaining + '"' +
-          ' placeholder="0"' +
-          ' oninput="window._calcSaleTotal()"/>' +
-        '<div style="font-size:11px;color:var(--text2);margin-top:6px">' +
-          'Batch: ' + fmt(bItem.totalCostPerPack) + ' + Labels: ' + fmt(lblCost) +
-          ' = <span style="color:var(--accent);font-weight:700">' + fmt(totalCost) + '/pack</span>' +
-        '</div>' +
-      '</div>';
-  });
+      '</div>' +
+      '<label class="form-label">Qty (max ' + (b.qtyRemaining || 0) + ' packs)</label>' +
+      '<input class="pack-input" type="number" inputmode="numeric"' +
+        ' data-cat-id="' + catId + '"' +
+        ' data-sell="' + cat.sellingPrice + '"' +
+        ' data-bcost="' + (b.totalCostPerPack || 0) + '"' +
+        ' data-lcost="' + lblCost + '"' +
+        ' min="0" max="' + (b.qtyRemaining || 0) + '"' +
+        ' placeholder="0"' +
+        ' oninput="window._calcSaleTotal()"/>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:6px">' +
+        'Batch: ' + fmt(b.totalCostPerPack || 0) + ' + Labels: ' + fmt(lblCost) +
+        ' = <span style="color:var(--accent);font-weight:700">' + fmt(totalCost) + '/pack</span>' +
+      '</div>' +
+    '</div>';
 
   _calcSaleTotal();
 }
@@ -350,14 +339,12 @@ export async function submitSale() {
     // 2. Update batch stock + label usage atomically
     const updates = {};
     Object.entries(items).forEach(([catId, it]) => {
-      if (!catId) return; // safety guard
-      const bItem = b?.items?.[catId];
-      if (bItem) {
-        updates['batches/' + batchId + '/items/' + catId + '/qtyRemaining'] =
-          Math.max(0, Number(bItem.qtyRemaining || 0) - it.qty);
-        updates['batches/' + batchId + '/items/' + catId + '/qtySold'] =
-          Number(bItem.qtySold || 0) + it.qty;
-      }
+      if (!catId) return;
+      // Flat batch structure
+      updates['batches/' + batchId + '/qtyRemaining'] =
+        Math.max(0, Number(b?.qtyRemaining || 0) - it.qty);
+      updates['batches/' + batchId + '/qtySold'] =
+        Number(b?.qtySold || 0) + it.qty;
       // Label deduction
       const cat        = STATE.settings.packCategories.find(x => x.id === catId);
       const labelsUsed = it.qty * (cat?.bottlesPerPack || 0);
@@ -479,12 +466,12 @@ export async function deleteSale() {
 
     Object.entries(s.items || {}).forEach(([catId, it]) => {
       if (!catId) return;
-      const bItem = b?.items?.[catId];
-      if (bItem) {
-        updates['batches/' + s.batchId + '/items/' + catId + '/qtyRemaining'] =
-          Number(bItem.qtyRemaining || 0) + it.qty;
-        updates['batches/' + s.batchId + '/items/' + catId + '/qtySold'] =
-          Math.max(0, Number(bItem.qtySold || 0) - it.qty);
+      // Flat batch structure restore
+      if (b) {
+        updates['batches/' + s.batchId + '/qtyRemaining'] =
+          Number(b.qtyRemaining || 0) + it.qty;
+        updates['batches/' + s.batchId + '/qtySold'] =
+          Math.max(0, Number(b.qtySold || 0) - it.qty);
       }
       const cat        = STATE.settings.packCategories.find(x => x.id === catId);
       const labelsUsed = it.qty * (cat?.bottlesPerPack || 0);

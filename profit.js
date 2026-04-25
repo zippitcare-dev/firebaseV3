@@ -165,3 +165,5 @@ function _wireChips() {
     };
   });
 }
+
+window.renderProfit = renderProfit;

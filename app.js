@@ -7,7 +7,7 @@ import { openSettingsModal, sAddPack, sRemovePack, sAddSheet, sRemoveSheet,
          sAddExpCat, sRemoveExpCat, saveLowLabelThreshold } from './settings.js';
 import { renderInventory, openBatchModal, submitBatch, openBatchDetail,
          toggleSoldOut, deleteBatch, openBatchWastageModal,
-         submitBatchWastage, _updateBatchPreview } from './batches.js';
+         submitBatchWastage, _updateBatchPreview, addStockToBatch } from './batches.js';
 import { renderClients, openClientModal, submitClient, openClientDetail,
          submitPriceUpdate, deleteClient } from './clients.js';
 import { renderLabels, openLabelDetail, openAddSheetModal, submitAddSheets,
@@ -19,7 +19,7 @@ import { renderSales, openSaleModal, submitSale, openSaleDetail,
 import { renderPayments, openPayModal, previewPayment, submitPayment } from './payments.js';
 import { renderExpenses, openExpModal, submitExpense, deleteExpense } from './expenses.js';
 import { renderProfit } from './profit.js';
-import { renderDashboard } from './dashboard.js';
+import { renderDashboard, openSalesSummaryModal } from './dashboard.js';
 import { openAuditModal } from './audit.js';
 
 window._confirmOk     = () => window._confirmResolve?.(true);
@@ -300,6 +300,7 @@ window.deleteBatch           = deleteBatch;
 window.openBatchWastageModal = openBatchWastageModal;
 window.submitBatchWastage    = submitBatchWastage;
 window._updateBatchPreview   = _updateBatchPreview;
+window.addStockToBatch       = addStockToBatch;
 window.openClientModal       = openClientModal;
 window.submitClient          = submitClient;
 window.openClientDetail      = openClientDetail;
@@ -327,5 +328,6 @@ window.submitExpense         = submitExpense;
 window.deleteExpense         = deleteExpense;
 window.openEditExp           = (id) => openExpModal(id);
 window.openAuditModal        = openAuditModal;
+window.openSalesSummaryModal = openSalesSummaryModal;
 
 document.addEventListener('DOMContentLoaded', boot);

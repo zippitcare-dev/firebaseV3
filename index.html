@@ -133,7 +133,7 @@
       </div>
       <div class="stat-grid">
         <div class="stat"><div class="stat-val" id="d-exp" style="color:var(--red)">&#8377;0</div><div class="stat-label">Expenses</div></div>
-        <div class="stat"><div class="stat-val" id="d-sales">0</div><div class="stat-label">Sales</div></div>
+        <div class="stat" style="cursor:pointer" onclick="window._dashFilteredSales && window.openSalesSummaryModal(window._dashFilteredSales)"><div class="stat-val" id="d-sales">0</div><div class="stat-label">Sales ↗</div></div>
       </div>
       <div id="dash-label-alerts"></div>
       <div class="chips" id="trend-chips">
@@ -541,6 +541,22 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">Pack Type</label>
+        <select class="form-select" id="b-cat" onchange="window._updateBatchPreview()"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Quantity (packs)</label>
+          <input class="form-input" type="number" inputmode="numeric" id="b-qty"
+            placeholder="0" oninput="window._updateBatchPreview()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Buy Cost / Pack (&#8377;)</label>
+          <input class="form-input" type="number" inputmode="numeric" id="b-cost"
+            placeholder="0" oninput="window._updateBatchPreview()"/>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">Delivery Charge (&#8377;)</label>
         <input class="form-input" type="number" inputmode="numeric" id="b-delivery"
           placeholder="0" oninput="window._updateBatchPreview()"/>
@@ -549,11 +565,15 @@
         <label class="form-label">Notes (optional)</label>
         <input class="form-input" id="b-notes" placeholder="Any remarks..."/>
       </div>
-      <div class="sec-hdr" style="margin-top:4px">
-        <span class="sec-title">Pack Types in this Batch</span>
+      <div style="background:var(--surface2);border-radius:var(--r12);padding:12px;margin-bottom:14px;font-size:12px;color:var(--green);font-weight:600" id="b-preview"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:var(--surface2);border-radius:var(--r12);padding:12px">
+        <input type="checkbox" id="b-editable" style="width:18px;height:18px;cursor:pointer"/>
+        <div>
+          <label for="b-editable" style="font-size:14px;font-weight:700;color:var(--text);cursor:pointer">Editable Batch</label>
+          <div style="font-size:11px;color:var(--text2)">Allow adding more packs to this batch later</div>
+        </div>
       </div>
-      <div id="batch-item-rows"></div>
-      <button class="btn-primary" style="margin-top:8px" onclick="submitBatch()">Save Batch</button>
+      <button class="btn-primary" onclick="submitBatch()">Save Batch</button>
     </div>
   </div>
 </div>
@@ -807,5 +827,17 @@
   </div>
 </div>
 
+
+<!-- SALES SUMMARY MODAL -->
+<div class="modal-bg" id="modal-sales-summary">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Sales Breakdown</div>
+      <button class="modal-close" onclick="document.getElementById('modal-sales-summary').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body" id="sales-summary-body"></div>
+  </div>
+</div>
 </body>
 </html>
