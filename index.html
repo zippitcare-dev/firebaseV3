@@ -133,7 +133,17 @@
       </div>
       <div class="stat-grid">
         <div class="stat"><div class="stat-val" id="d-exp" style="color:var(--red)">&#8377;0</div><div class="stat-label">Expenses</div></div>
-        <div class="stat" style="cursor:pointer" onclick="window._dashFilteredSales && window.openSalesSummaryModal(window._dashFilteredSales)"><div class="stat-val" id="d-sales">0</div><div class="stat-label">Sales ↗</div></div>
+        <div class="stat" style="cursor:pointer" onclick="window._dashFilteredSales && window.openSalesSummaryModal(window._dashFilteredSales)"><div class="stat-val" id="d-sales">0</div><div class="stat-label">Sales &#8599;</div></div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #2a2a5e;margin-bottom:14px;cursor:pointer" onclick="showPage('balance')">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:12px;color:#8888cc;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Current Balance</div>
+            <div style="font-size:28px;font-weight:800;margin-top:4px" id="d-balance">&#8377;0</div>
+          </div>
+          <div style="font-size:32px;opacity:.5">&#128176;</div>
+        </div>
+        <div style="font-size:11px;color:#6666aa;margin-top:8px">Tap to view full balance details &rsaquo;</div>
       </div>
       <div id="dash-label-alerts"></div>
       <div class="chips" id="trend-chips">
@@ -230,6 +240,11 @@
     <!-- MORE -->
     <div class="page" id="pg-more">
       <div class="card" style="padding:0 16px">
+        <div class="menu-item" onclick="showPage('balance')">
+          <div class="menu-icon" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">&#128176;</div>
+          <div><div class="menu-label">Current Balance</div><div class="menu-sub">Cash flow and transaction history</div></div>
+          <div class="menu-arrow">&rsaquo;</div>
+        </div>
         <div class="menu-item" onclick="showPage('payments')" id="menu-pay">
           <div class="menu-icon" style="background:var(--amber-d)">&#128179;</div>
           <div><div class="menu-label">Pending Payments</div><div class="menu-sub">Collect dues from clients</div></div>
@@ -334,6 +349,33 @@
       </div>
       <div class="card" style="padding:12px"><div class="chart-box"><canvas id="chart-profit"></canvas></div></div>
       <div id="profit-list"></div>
+    </div>
+
+    <!-- BALANCE PAGE -->
+    <div class="page" id="pg-balance">
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #2a2a5e;border-radius:var(--r16);padding:20px;margin-bottom:14px;text-align:center">
+        <div style="font-size:12px;color:#8888cc;font-weight:600;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Current Balance</div>
+        <div style="font-size:36px;font-weight:800" id="bal-current">&#8377;0</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat green"><div class="stat-val" id="bal-total-in">&#8377;0</div><div class="stat-label">Total In</div></div>
+        <div class="stat red"  ><div class="stat-val" id="bal-total-out">&#8377;0</div><div class="stat-label">Total Out</div></div>
+      </div>
+      <div class="card-sm" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;color:var(--text2);font-weight:500">Opening Balance</div>
+            <div style="font-size:18px;font-weight:800" id="bal-opening">&#8377;0</div>
+          </div>
+          <button class="btn-sm" onclick="openModal('modal-opening-balance')">Edit</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="btn-primary" style="flex:1;background:var(--green)" onclick="window.openManualTransactionModal('in')">+ Add Money</button>
+        <button class="btn-primary" style="flex:1;background:var(--red)"   onclick="window.openManualTransactionModal('out')">− Deduct Money</button>
+      </div>
+      <div class="sec-hdr"><span class="sec-title">Transaction History</span></div>
+      <div id="bal-list"></div>
     </div>
 
   </div><!-- /content -->
@@ -839,5 +881,55 @@
     <div class="modal-body" id="sales-summary-body"></div>
   </div>
 </div>
+
+<!-- OPENING BALANCE MODAL -->
+<div class="modal-bg" id="modal-opening-balance">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Set Opening Balance</div>
+      <button class="modal-close" onclick="document.getElementById('modal-opening-balance').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        This is the cash you had when the app went live. Set this only once at the beginning.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Opening Balance (&#8377;)</label>
+        <input class="form-input" type="number" inputmode="numeric" id="bal-opening-input" placeholder="e.g. 50000"/>
+      </div>
+      <button class="btn-primary" onclick="saveOpeningBalance()">Save Opening Balance</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL TRANSACTION MODAL -->
+<div class="modal-bg" id="modal-manual-tx">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="mtx-title">Add Money</div>
+      <button class="modal-close" onclick="document.getElementById('modal-manual-tx').classList.remove('show')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount (&#8377;)</label>
+          <input class="form-input" type="number" inputmode="numeric" id="mtx-amount" placeholder="0"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" type="date" id="mtx-date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (required)</label>
+        <input class="form-input" id="mtx-note" placeholder="e.g. Bought batch B-005 / Personal top-up"/>
+      </div>
+      <button class="btn-primary" id="mtx-submit" onclick="window.submitManualTransaction()">Add to Balance</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

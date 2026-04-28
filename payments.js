@@ -1,5 +1,6 @@
 // payments.js
 import { DB, objToArr, fmt, today, nowISO, colorFor, initials } from './firebase.js';
+import { addBalanceTransaction } from './balance.js';
 import { STATE } from './state.js';
 import { toast, showConfirm, openModal, closeModal } from './ui.js';
 
@@ -215,9 +216,14 @@ export async function submitPayment() {
       await DB.multiUpdate(updates);
     }
 
+    // Auto-add to balance
+    const cl = STATE.clients.find(c => c.id === clientId);
+    await addBalanceTransaction('in', amt, 'Payment from ' + (cl?.name || clientId), 'payment');
+
     toast('Payment of ' + fmt(amt) + ' recorded!');
     closeModal('modal-payment');
     window.dispatchEvent(new CustomEvent('zp:data-changed'));
+    window.dispatchEvent(new CustomEvent('zp:balance-changed'));
   } catch (err) {
     console.error('Payment error:', err);
     toast('Failed: ' + err.message, true);

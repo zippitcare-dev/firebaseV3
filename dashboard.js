@@ -1,5 +1,6 @@
 // dashboard.js
 import { fmt, ym, getWeekDates, colorFor, initials } from './firebase.js';
+import { calcCurrentBalance } from './balance.js';
 import { STATE } from './state.js';
 
 let _dashChart = null;
@@ -47,6 +48,7 @@ export function renderDashboard() {
   if (salesEl) salesEl.style.cursor = 'pointer';
 
   _renderTrendChart(filtSales, mVal, yVal, now);
+  _renderBalanceCard();
   _renderLabelAlerts();
   _renderTopClients(filtSales);
 }
@@ -252,5 +254,15 @@ export function openSalesSummaryModal(filtSales) {
   document.getElementById('modal-sales-summary').classList.add('show');
 }
 window.openSalesSummaryModal = openSalesSummaryModal;
+
+function _renderBalanceCard() {
+  const bal   = calcCurrentBalance();
+  const el    = document.getElementById('d-balance');
+  const labEl = document.getElementById('d-balance-label');
+  if (el) {
+    el.textContent  = fmt(bal);
+    el.style.color  = bal >= 0 ? '#fff' : 'var(--red)';
+  }
+}
 
 window.renderDashboard = renderDashboard;

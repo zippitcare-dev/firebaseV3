@@ -1,5 +1,6 @@
 // expenses.js
 import { DB, objToArr, fmt, today, nowISO } from './firebase.js';
+import { addBalanceTransaction } from './balance.js';
 import { STATE } from './state.js';
 import { toast, showConfirm, openModal, closeModal } from './ui.js';
 
@@ -142,10 +143,13 @@ export async function submitExpense() {
       toast('Expense updated!');
     } else {
       await DB.push('expenses', { ...data, createdAt: nowISO(), createdBy: STATE.user.name });
+      // Auto-deduct from balance
+      await addBalanceTransaction('out', amount, reason + ' (' + cat + ')', 'expense');
       toast('Expense saved!');
     }
     closeModal('modal-expense');
     window.dispatchEvent(new CustomEvent('zp:data-changed'));
+    window.dispatchEvent(new CustomEvent('zp:balance-changed'));
   } catch (err) {
     toast('Failed: ' + err.message, true);
   } finally {

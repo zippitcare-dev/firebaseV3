@@ -21,6 +21,9 @@ import { renderExpenses, openExpModal, submitExpense, deleteExpense } from './ex
 import { renderProfit } from './profit.js';
 import { renderDashboard, openSalesSummaryModal } from './dashboard.js';
 import { openAuditModal } from './audit.js';
+import { loadBalance, renderBalance, calcCurrentBalance,
+         openManualTransactionModal, submitManualTransaction,
+         saveOpeningBalance } from './balance.js';
 
 window._confirmOk     = () => window._confirmResolve?.(true);
 window._confirmCancel = () => window._confirmResolve?.(false);
@@ -112,6 +115,7 @@ function showPage(name) {
   if (name === 'labels')    renderLabels();
   if (name === 'payments')  renderPayments();
   if (name === 'expenses')  renderExpenses();
+  if (name === 'balance')   renderBalance();
   if (name === 'profit')    renderProfit();
 }
 
@@ -142,6 +146,7 @@ async function loadAll() {
     DB.get('batches'), DB.get('clients'), DB.get('sales'),
     DB.get('expenses'), DB.get('payments'),
   ]);
+  await loadBalance();
   STATE.batches  = objToArr(batches).filter(b => !b.deleted);
   STATE.clients  = objToArr(clients).filter(c => c.active !== false);
   STATE.sales    = objToArr(sales);
@@ -245,6 +250,12 @@ async function boot() {
   _initMonthPicker();
 }
 
+// BALANCE CHANGED
+window.addEventListener('zp:balance-changed', () => {
+  if (typeof renderDashboard === 'function') renderDashboard();
+  if (_currentPage === 'balance') renderBalance();
+});
+
 // LOGIN SUCCESS
 window.addEventListener('zp:login', async e => {
   const user = e.detail;
@@ -270,6 +281,7 @@ window.addEventListener('zp:data-changed', async () => {
     clients:   renderClients,   sales:     renderSales,
     labels:    renderLabels,    payments:  renderPayments,
     expenses:  renderExpenses,  profit:    renderProfit,
+    balance:   renderBalance,
   };
   renders[_currentPage]?.();
 });
@@ -327,7 +339,11 @@ window.openExpModal          = openExpModal;
 window.submitExpense         = submitExpense;
 window.deleteExpense         = deleteExpense;
 window.openEditExp           = (id) => openExpModal(id);
-window.openAuditModal        = openAuditModal;
+window.openAuditModal              = openAuditModal;
+window.openManualTransactionModal  = openManualTransactionModal;
+window.submitManualTransaction     = submitManualTransaction;
+window.saveOpeningBalance          = saveOpeningBalance;
+window.renderBalance               = renderBalance;
 window.openSalesSummaryModal = openSalesSummaryModal;
 
 document.addEventListener('DOMContentLoaded', boot);
