@@ -3,6 +3,7 @@ import { DB, objToArr, fmt, today, nowISO, colorFor, initials } from './firebase
 import { STATE } from './state.js';
 import { toast, showConfirm, openModal, closeModal } from './ui.js';
 import { getCatName, labelCostPerPack } from './settings.js';
+import { addBalanceTransaction } from './balance.js';
 
 // ── HELPERS ───────────────────────────────────────────────────
 // Only batches that are active AND have stock for at least one category the client uses
@@ -357,7 +358,14 @@ export async function submitSale() {
       await DB.multiUpdate(updates);
     }
 
+    // Add amountPaid to balance immediately
+    if (amountPaid > 0) {
+      await addBalanceTransaction('in', amountPaid,
+        'Sale — ' + (c?.name || clientId) + (payStatus === 'partial' ? ' (partial)' : payStatus === 'pending' ? ' (pending — ₹0 received)' : ''),
+        'payment');
+    }
     toast('Sale saved! Revenue: ' + fmt(totalRevenue) + ' · Profit: ' + fmt(grossProfit));
+    window.dispatchEvent(new CustomEvent('zp:balance-changed'));
     closeModal('modal-sale');
     window.dispatchEvent(new CustomEvent('zp:data-changed'));
   } catch (err) {

@@ -220,7 +220,13 @@ export async function submitPayment() {
     const cl = STATE.clients.find(c => c.id === clientId);
     await addBalanceTransaction('in', amt, 'Payment from ' + (cl?.name || clientId), 'payment');
 
+    // Add collected amount to balance
+    const cl2 = STATE.clients.find(c => c.id === clientId);
+    await addBalanceTransaction('in', amt,
+      'Payment collected — ' + (cl2?.name || clientId),
+      'payment');
     toast('Payment of ' + fmt(amt) + ' recorded!');
+    window.dispatchEvent(new CustomEvent('zp:balance-changed'));
     closeModal('modal-payment');
     window.dispatchEvent(new CustomEvent('zp:data-changed'));
     window.dispatchEvent(new CustomEvent('zp:balance-changed'));
