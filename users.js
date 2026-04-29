@@ -1,10 +1,33 @@
 // users.js — Login, PIN numpad, user management
-import { DB, objToArr, hashPin, colorFor, initials, nowISO } from './firebase.js';
+import { DB, objToArr, colorFor, initials, nowISO } from './firebase.js';
 import { STATE } from './state.js';
 import { toast, openModal, closeModal } from './ui.js';
 
 let _selectedUser = null;
 let _pinBuffer    = '';
+
+// ── PIN HASHING (fix #4 — real hash, not plaintext token) ─────
+// Simple but effective: SHA-256 via SubtleCrypto, falls back to
+// a djb2-based string if SubtleCrypto is unavailable.
+async function _hashPin(pin) {
+  try {
+    const buf    = new TextEncoder().encode('ZP_SALT_' + String(pin));
+    const digest = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(digest))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch (_) {
+    // Fallback (very old browser): simple djb2 — still beats plain PIN_XXXX
+    let h = 5381;
+    for (const c of ('ZP_SALT_' + pin)) h = ((h << 5) + h) ^ c.charCodeAt(0);
+    return 'fb_' + Math.abs(h).toString(36);
+  }
+}
+
+// Legacy format check (old plain-text PIN_XXXX tokens)
+function _isLegacyPin(pin) {
+  return typeof pin === 'string' && pin.startsWith('PIN_');
+}
 
 // ── LOAD USERS FROM FIREBASE ──────────────────────────────────
 export async function loadUsers() {
@@ -13,8 +36,8 @@ export async function loadUsers() {
   if (data) {
     const arr = objToArr(data).filter(u => u.active !== false);
 
-    // Detect old hash format (from previous broken versions) — re-seed if found
-    const hasOldHash = arr.some(u => u.pin && u.pin.startsWith('H'));
+    // Detect old plain-text hash format — re-seed if found (fix #4)
+    const hasOldHash = arr.some(u => u.pin && _isLegacyPin(u.pin));
     if (hasOldHash) {
       await DB.set('users', null);
       await _seedOwner();
@@ -34,7 +57,7 @@ async function _seedOwner() {
     name:      'Owner',
     initials:  'OW',
     role:      'owner',
-    pin:       hashPin('1234'),   // stored as 'PIN_1234'
+    pin:       await _hashPin('1234'),
     color:     '#6c63ff',
     active:    true,
     createdAt: new Date().toISOString(),
@@ -132,11 +155,10 @@ function _updatePinUI() {
 export async function checkPin() {
   if (_pinBuffer.length !== 4) return;
 
-  const entered = hashPin(_pinBuffer);   // 'PIN_XXXX'
+  const entered = await _hashPin(_pinBuffer);
 
   if (entered === _selectedUser.pin) {
     STATE.user = _selectedUser;
-    // Dispatch login event — app.js listens for this
     window.dispatchEvent(new CustomEvent('zp:login', { detail: _selectedUser }));
   } else {
     document.getElementById('pin-err').textContent = 'Incorrect PIN. Try again.';
@@ -149,7 +171,6 @@ export async function checkPin() {
 
 // ── USERS MODAL (add/remove team members) ────────────────────
 export async function openUsersModal() {
-  // Reload fresh from Firebase
   const data  = await DB.get('users');
   STATE.users = objToArr(data).filter(u => u.active !== false);
 
@@ -178,9 +199,10 @@ export async function addUser() {
   const role = document.getElementById('nu-role').value;
   const pin  = document.getElementById('nu-pin').value.trim();
 
-  if (!name)          { toast('Enter user name', true); return; }
-  if (!ini)           { toast('Enter initials', true);  return; }
+  if (!name)            { toast('Enter user name',              true); return; }
+  if (!ini)             { toast('Enter initials',               true); return; }
   if (pin.length !== 4) { toast('PIN must be exactly 4 digits', true); return; }
+  if (!/^\d{4}$/.test(pin)) { toast('PIN must be 4 numbers',   true); return; }
 
   const colors = ['#6c63ff','#00c896','#ff4d6d','#ffaa00','#4da6ff'];
   const color  = colors[Math.floor(Math.random() * colors.length)];
@@ -188,7 +210,7 @@ export async function addUser() {
 
   await DB.set('users/' + id, {
     name, initials: ini, role,
-    pin:       hashPin(pin),
+    pin:       await _hashPin(pin),   // fix #4 — real hash
     color,
     active:    true,
     createdAt: new Date().toISOString(),

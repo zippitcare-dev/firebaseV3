@@ -24,6 +24,13 @@ export const DB = {
   remove:      (path)      => remove(ref(db, path)),
   listen:      (path, cb)  => onValue(ref(db, path), s => cb(s.val())),
   multiUpdate: (obj)       => update(ref(db, '/'), obj),
+
+  // fix #2 — generate a Firebase push key WITHOUT writing data yet,
+  // so the key can be embedded in an atomic multiUpdate call.
+  pushKey: (path) => {
+    const newRef = push(ref(db, path));
+    return newRef.key;   // returns the generated key string synchronously
+  },
 };
 
 // ── Utilities ─────────────────────────────────────────────────
@@ -32,7 +39,6 @@ export function objToArr(data) {
   return Object.entries(data).map(([id, v]) => ({ id, ...v }));
 }
 
-export const hashPin  = pin  => 'PIN_' + String(pin);
 export const today    = ()   => new Date().toISOString().split('T')[0];
 export const nowISO   = ()   => new Date().toISOString();
 export const fmt      = n    => '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
